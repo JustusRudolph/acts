@@ -38,6 +38,7 @@
 
 #include <functional>
 #include <memory>
+#include <limits>
 #include <unordered_map>
 
 namespace Acts {
@@ -69,6 +70,8 @@ struct CombinatorialKalmanFilterExtensions {
           candidate_container_t& trackStates, bool&, LoggerWrapper)>;
   using BranchStopper =
       Delegate<bool(const CombinatorialKalmanFilterTipState&)>;
+  using MikadoSelector =
+    Delegate<uint32_t(MultiTrajectory::TrackStateProxy)>;
 
   /// The Calibrator is a dedicated calibration algorithm that allows
   /// to calibrate measurements using track information, this could be
@@ -86,6 +89,9 @@ struct CombinatorialKalmanFilterExtensions {
 
   BranchStopper branchStopper;
 
+  MikadoSelector mikadoSelector;
+  mutable std::vector<bool> used_measurements;  /// unique IDs for spacepoints
+
   /// Default constructor which connects the default void components
   CombinatorialKalmanFilterExtensions() {
     calibrator.connect<&voidKalmanCalibrator>();
@@ -93,6 +99,7 @@ struct CombinatorialKalmanFilterExtensions {
     smoother.connect<&voidKalmanSmoother>();
     branchStopper.connect<voidBranchStopper>();
     measurementSelector.connect<voidMeasurementSelector>();
+    mikadoSelector.connect<voidMikadoSelector>();
   }
 
  private:
@@ -119,6 +126,8 @@ struct CombinatorialKalmanFilterExtensions {
     (void)tipState;
     return false;
   }
+  static uint32_t voidMikadoSelector(
+    MultiTrajectory::TrackStateProxy) { return std::numeric_limits<uint32_t>::max(); }
 };
 
 /// Combined options for the combinatorial Kalman filter.
@@ -597,9 +606,21 @@ class CombinatorialKalmanFilter {
         }
         auto selectedTrackStateRange = *selectorResult;
 
+        std::vector<MultiTrajectory::TrackStateProxy> collectedMeasurements;
+        for (auto itr=selectedTrackStateRange.first; itr!=selectedTrackStateRange.second; itr++) {
+          uint32_t measurement_index = m_extensions.mikadoSelector(*itr);
+          if (m_extensions.used_measurements[measurement_index]) {   // check if this measurement is already used
+                std::cout << "Measurement " << measurement_index << " already used." << std::endl;
+                continue;
+                }
+          collectedMeasurements.push_back( *itr );
+          m_extensions.used_measurements[measurement_index] = true;
+        }
+
+
         auto procRes = processSelectedTrackStates(
-            state.geoContext, selectedTrackStateRange.first,
-            selectedTrackStateRange.second, result, isOutlier, prevTipState,
+            state.geoContext, collectedMeasurements.begin(),
+            collectedMeasurements.end(), result, isOutlier, prevTipState,
             nBranchesOnSurface, logger);
 
         if (!procRes.ok()) {
@@ -1238,16 +1259,29 @@ class CombinatorialKalmanFilter {
     // set the pointer to the source links
     combKalmanActor.m_sourcelinkAccessor.container = &sourcelinks;
     combKalmanActor.m_extensions = tfOptions.extensions;
+    combKalmanActor.m_extensions.used_measurements = std::vector<bool>(262144);
 
     // Run the CombinatorialKalmanFilter.
     // @todo The same target surface is used for all the initial track
     // parameters, which is not necessarily the case.
     std::vector<Result<CombinatorialKalmanFilterResult>> ckfResults;
     ckfResults.reserve(initialParameters.size());
+
+    // Create a sorted initialParameters vector since the function is const    
+    std::vector<parameters_t> initialParameters_sort(initialParameters.begin(),
+                                                     initialParameters.end());
+
+    // sort by transverse momentum
+    std::sort(initialParameters_sort.begin(), initialParameters_sort.end(),
+              [](const auto& sParams_a, const auto& sParams_b) {
+      return sParams_a.transverseMomentum() > sParams_b.transverseMomentum();
+    });
     // Loop over all initial track parameters. Return the results for all
     // initial track parameters including those failed ones.
-    for (size_t iseed = 0; iseed < initialParameters.size(); ++iseed) {
-      const auto& sParameters = initialParameters[iseed];
+    for (size_t iseed = 0; iseed < initialParameters_sort.size(); ++iseed) {
+      //std::cout << "We are in iteration " << iseed << " of initial parameters of seeds." << std::endl;
+
+      const auto& sParameters = initialParameters_sort[iseed];
       auto result = m_propagator.template propagate(sParameters, propOptions);
 
       if (!result.ok()) {

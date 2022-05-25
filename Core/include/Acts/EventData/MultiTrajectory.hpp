@@ -140,6 +140,8 @@ struct IndexData {
   IndexType ismoothed = kInvalid;
   IndexType ijacobian = kInvalid;
   IndexType iprojector = kInvalid;
+  
+  bool is_used;
 
   double chi2 = 0;
   double pathLength;
@@ -201,6 +203,11 @@ class TrackStateProxy {
   template <bool RO = ReadOnly, typename = std::enable_if_t<!RO>>
   IndexData& data() {
     return m_traj->m_index[m_istate];
+  }
+
+  /// Return the flag if the index for the current 
+  bool get_used_index() const {
+    return data().is_used;
   }
 
   /// Build a mask that represents all the allocated components of this track

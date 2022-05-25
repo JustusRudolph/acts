@@ -214,6 +214,7 @@ inline size_t MultiTrajectory::addTrackState(TrackStatePropMask mask,
     m_projectors.emplace_back();
     p.iprojector = m_projectors.size() - 1;
   }
+  p.is_used = true;  // set the flag that this index has been used
 
   return index;
 }
