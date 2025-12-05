@@ -1437,6 +1437,8 @@ def addCKFTracks(
     writeTrackStates: bool = False,
     writePerformance: bool = True,
     writeCovMat=False,
+    writeMatchingDetails: bool = False,
+    writerEtaRange: tuple[float, float] = (-4.0, 4.0),
     logLevel: Optional[acts.logging.Level] = None,
 ) -> None:
     """This function steers the seeding
@@ -1576,6 +1578,8 @@ def addCKFTracks(
         writeFitterPerformance=writePerformance,
         writeFinderPerformance=writePerformance,
         writeCovMat=writeCovMat,
+        writeMatchingDetails=writeMatchingDetails,
+        etaRange=writerEtaRange,
         logLevel=logLevel,
     )
 
@@ -1652,6 +1656,8 @@ def addTrackWriters(
     writeStates: bool = False,
     writeFitterPerformance: bool = False,
     writeFinderPerformance: bool = False,
+    writeMatchingDetails: bool = False,  # relevant for TrackFinderPerformanceWriter
+    etaRange: tuple[float, float] = (-1.0, 1.0),
     logLevel: Optional[acts.logging.Level] = None,
     writeCovMat=False,
 ):
@@ -1705,6 +1711,14 @@ def addTrackWriters(
                 inputTrackParticleMatching="track_particle_matching",
                 inputParticleTrackMatching="particle_track_matching",
                 filePath=str(outputDirRoot / f"performance_finding_{name}.root"),
+                writeMatchingDetails=writeMatchingDetails,
+                effPlotToolConfig = acts.examples.EffPlotToolConfig({
+                    "Eta": acts.examples.Binning("#eta", 100, -1e-6, 1e-6),
+                    "Phi": acts.examples.Binning("#phi", 100, -3.15, 3.15), 
+                    "Pt": acts.examples.Binning("pT [GeV/c]", 50, 0.1, 100),
+                    "Z0": acts.examples.Binning("z_0 [mm]", 50, -200, 200),
+                    "DeltaR": acts.examples.Binning("#Delta R", 100, 0, 0.3)
+                }),
             )
             s.addWriter(trackFinderPerfWriter)
 
@@ -1890,6 +1904,8 @@ def addAmbiguityResolution(
     writeTrackStates: bool = False,
     writePerformance: bool = True,
     writeCovMat=False,
+    writeMatchingDetails: bool = False,
+    writerEtaRange: tuple[float, float] = (-4.0, 4.0),
     logLevel: Optional[acts.logging.Level] = None,
 ) -> None:
     from acts.examples import GreedyAmbiguityResolutionAlgorithm
@@ -1937,6 +1953,8 @@ def addAmbiguityResolution(
         writeFitterPerformance=writePerformance,
         writeFinderPerformance=writePerformance,
         writeCovMat=writeCovMat,
+        writeMatchingDetails=writeMatchingDetails,
+        etaRange=writerEtaRange,
         logLevel=logLevel,
     )
 
@@ -1957,6 +1975,7 @@ def addScoreBasedAmbiguityResolution(
     writeTrackStates: bool = False,
     writePerformance: bool = True,
     writeCovMat=False,
+    writeMatchingDetails: bool = False,
     logLevel: Optional[acts.logging.Level] = None,
 ) -> None:
     from acts.examples import ScoreBasedAmbiguityResolutionAlgorithm
@@ -2008,6 +2027,7 @@ def addScoreBasedAmbiguityResolution(
         writeFitterPerformance=writePerformance,
         writeFinderPerformance=writePerformance,
         writeCovMat=writeCovMat,
+        writeMatchingDetails=writeMatchingDetails,
         logLevel=logLevel,
     )
 
@@ -2028,6 +2048,7 @@ def addAmbiguityResolutionML(
     writeTrackStates: bool = False,
     writePerformance: bool = True,
     writeCovMat=False,
+    writeMatchingDetails: bool = False,
     logLevel: Optional[acts.logging.Level] = None,
 ) -> None:
     from acts.examples.onnx import AmbiguityResolutionMLAlgorithm
@@ -2088,6 +2109,7 @@ def addAmbiguityResolutionML(
         writeFitterPerformance=writePerformance,
         writeFinderPerformance=writePerformance,
         writeCovMat=writeCovMat,
+        writeMatchingDetails=writeMatchingDetails,
         logLevel=logLevel,
     )
 

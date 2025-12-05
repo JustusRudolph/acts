@@ -108,9 +108,15 @@ class TrackFinderPerformanceWriter final : public WriterT<ConstTrackContainer> {
   TTree* m_matchingTree{nullptr};
 
   /// Variables to fill in the TTree
-  std::uint32_t m_treeEventNr{};
-  std::uint64_t m_treeParticleId{};
-  bool m_treeIsMatched{};
+  uint32_t m_treeEventNr{};
+  std::vector<uint64_t> m_treeParticleId{};
+  std::vector<bool> m_treeIsMatched{};
+  // per event per particle (sorted descendingly by weight)
+  std::vector<std::vector<uint32_t>> m_matchedTrackIdxs{};
+  std::vector<float> m_eta;
+  std::vector<float> m_phi;
+  std::vector<int> m_nHits;
+  std::vector<bool> m_isSecondary;
 
   // Adding numbers for efficiency, fake, duplicate calculations
   std::size_t m_nTotalTracks = 0;

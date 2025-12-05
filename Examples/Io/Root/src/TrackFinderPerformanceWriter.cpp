@@ -62,11 +62,17 @@ TrackFinderPerformanceWriter::TrackFinderPerformanceWriter(
   }
 
   if (m_cfg.writeMatchingDetails) {
+    printf("Need to check if we even write this...\n");
     m_matchingTree = new TTree("matchingdetails", "matchingdetails");
 
     m_matchingTree->Branch("event_nr", &m_treeEventNr);
     m_matchingTree->Branch("particle_id", &m_treeParticleId);
     m_matchingTree->Branch("matched", &m_treeIsMatched);
+    m_matchingTree->Branch("matchedTrackIdxs", &m_matchedTrackIdxs);
+    m_matchingTree->Branch("eta", &m_eta);
+    m_matchingTree->Branch("phi", &m_phi);
+    m_matchingTree->Branch("nHits", &m_nHits);
+    m_matchingTree->Branch("isSecondary", &m_isSecondary);
   }
 
   // initialize the plot tools
@@ -164,6 +170,7 @@ ProcessCode TrackFinderPerformanceWriter::writeT(
 
   // Read truth input collections
   const auto& particles = m_inputParticles(ctx);
+  // printf("Have %zu particles in event %lu.\n", particles.size(), ctx.eventNumber);
   const auto& trackParticleMatching = m_inputTrackParticleMatching(ctx);
   const auto& particleTrackMatching = m_inputParticleTrackMatching(ctx);
 
@@ -323,20 +330,49 @@ ProcessCode TrackFinderPerformanceWriter::writeT(
 
   // Write additional stuff to TTree
   if (m_cfg.writeMatchingDetails && m_matchingTree != nullptr) {
+    m_treeEventNr = ctx.eventNumber;  // same for all particles in this event
+    unsigned nMatched = 0;
     for (const auto& particle : particles) {
       auto particleId = particle.particleId();
+      
+      m_treeParticleId.push_back(particleId.value());
+      m_eta.push_back(eta(particle.direction()));
+      m_phi.push_back(particle.phi());
+      m_nHits.push_back(particle.numberOfHits());
+      m_isSecondary.push_back(particle.isSecondary());
+      m_treeIsMatched.push_back(false);
 
-      m_treeEventNr = ctx.eventNumber;
-      m_treeParticleId = particleId.value();
-
-      m_treeIsMatched = false;
       if (auto imatched = particleTrackMatching.find(particleId);
           imatched != particleTrackMatching.end()) {
-        m_treeIsMatched = imatched->second.track.has_value();
+        nMatched++;
+        m_treeIsMatched.back() = imatched->second.track.has_value();
+        m_matchedTrackIdxs.push_back({});
+        for (const auto& trackWithWeight : imatched->second.duplicateIdxs) {
+          // push back the track index only (ignore weight)
+          m_matchedTrackIdxs.back().push_back(trackWithWeight.first);
+        }
+        printf("\tMatching info found for particle id %lu in event %lu with %u tracks\n",
+               particleId.value(), ctx.eventNumber, tracks.size());
+      } else {
+        printf("\tNo matching info for particle id %lu in event %lu with %u tracks\n",
+               particleId.value(), ctx.eventNumber, tracks.size());
       }
-
-      m_matchingTree->Fill();
     }
+    if (particles.size() != 1) {
+      printf("Out of %lu particles in (my) event %lu, we have (%lu) %u (un)matched.\n",
+        particles.size(), ctx.eventNumber, particles.size() - nMatched, nMatched);
+    }
+    // Fill vectors of info for this event
+    m_matchingTree->Fill();
+
+    // clear the vectors to free space
+    m_treeParticleId.clear();
+    m_treeIsMatched.clear();
+    m_matchedTrackIdxs.clear();
+    m_eta.clear();
+    m_phi.clear();
+    m_nHits.clear();
+    m_isSecondary.clear();
   }
 
   return ProcessCode::SUCCESS;
