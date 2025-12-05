@@ -12,6 +12,8 @@
 
 #include <tuple>
 #include <utility>
+#include <typeinfo>
+#include <iostream>
 
 namespace Acts::detail {
 
@@ -51,16 +53,24 @@ struct actor_caller {
   {
     if constexpr (ActorHasAbortWithoutResult<actor_t, propagator_state_t,
                                              stepper_t, navigator_t, Args...>) {
-      return actor.checkAbort(state, stepper, navigator,
+      bool res = actor.checkAbort(state, stepper, navigator,
                               std::forward<Args>(args)...);
+      if (res) {
+        std::cout << "Abort condition TRUE in actor " << typeid(actor_t).name() << " without result.\n";
+      }
+      return res;
     }
 
     if constexpr (ActorHasAbortWithResult<actor_t, propagator_state_t,
                                           stepper_t, navigator_t, Args...>) {
-      return actor.checkAbort(
+      bool res = actor.checkAbort(
           state, stepper, navigator,
           state.template get<typename actor_t::result_type>(),
           std::forward<Args>(args)...);
+      if (res) {
+        std::cout << "Abort condition TRUE in actor " << typeid(actor_t).name() << " with result.\n";
+      }
+      return res;
     }
 
     return false;

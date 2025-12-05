@@ -170,6 +170,10 @@ struct SimulationActor {
           slab.scaleThickness(std::abs(cosIncidenceInv));
           // run the interaction simulation
           interact(slab, result);  // MARK: fpeMask(FLTUND, 1, #2346)
+          ACTS_DEBUG("\tInteracted with surface " << surface.geometryId()
+                     << " that is " << ((surface.associatedDetectorElement() != nullptr)
+                                            ? "SENSITIVE"
+                                            : "PASSIVE"));
         }
       }
     }

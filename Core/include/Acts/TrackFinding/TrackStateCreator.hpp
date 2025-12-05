@@ -131,8 +131,12 @@ struct TrackStateCreator {
       TrackIndexType prevTip,
       std::vector<TrackStateProxy>& trackStateCandidates,
       TrackStateContainerBackend& trajectory, const Logger& logger) const {
+    ACTS_DEBUG("\t\tForwarding: We have "
+                << std::distance(slBegin, slEnd)
+                << " source links on surface "
+                << surface.geometryId());
     using PM = TrackStatePropMask;
-
+    
     using ResultTrackStateList =
         Acts::Result<CkfTypes::BranchVector<TrackIndexType>>;
     ResultTrackStateList resultTrackStateList{
@@ -188,6 +192,10 @@ struct TrackStateCreator {
 
       trackStateCandidates.push_back(ts);
     }
+    ACTS_DEBUG("\t\tForwarding: We have "
+               << trackStateCandidates.size()
+               << " measurements on surface "
+               << surface.geometryId());
 
     bool isOutlier = false;
     Result<std::pair<typename std::vector<TrackStateProxy>::iterator,

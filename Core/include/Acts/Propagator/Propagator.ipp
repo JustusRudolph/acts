@@ -22,7 +22,7 @@ template <typename S, typename N>
 template <typename propagator_state_t>
 Acts::Result<void> Acts::Propagator<S, N>::propagate(
     propagator_state_t& state) const {
-  ACTS_VERBOSE("Entering propagation.");
+  ACTS_DEBUG("Entering propagation.");
 
   state.stage = PropagatorStage::prePropagation;
 
@@ -31,7 +31,7 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
 
   if (state.options.actorList.checkAbort(state, m_stepper, m_navigator,
                                          logger())) {
-    ACTS_VERBOSE("Propagation terminated without going into stepping loop.");
+    ACTS_ERROR("Propagation terminated without going into stepping loop.");
 
     state.stage = PropagatorStage::postPropagation;
 
@@ -97,7 +97,8 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
     state.direction =
         state.options.direction * m_stepper.direction(state.stepping);
 
-    ACTS_VERBOSE("Step with size " << *res << " performed. We are now at "
+    ACTS_DEBUG("Step " << state.steps << " performed.");
+    ACTS_DEBUG("\tSize " << *res << " step taken. We are now at "
                                    << state.position.transpose()
                                    << " with direction "
                                    << state.direction.transpose());
@@ -116,6 +117,8 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
           nextTarget.boundaryTolerance, state.options.surfaceTolerance,
           ConstrainedStep::Type::Navigator, logger());
       if (postStepSurfaceStatus == IntersectionStatus::onSurface) {
+        ACTS_DEBUG("\tReached target surface "
+                   << nextTarget.surface->geometryId());
         m_navigator.handleSurfaceReached(state.navigation, state.position,
                                          state.direction, *nextTarget.surface);
       }
@@ -123,11 +126,12 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
         nextTarget = NavigationTarget::None();
       }
     }
-
+    ACTS_DEBUG("\tCalling actor list after step " << state.steps << ".");
     state.options.actorList.act(state, m_stepper, m_navigator, logger());
 
     if (state.options.actorList.checkAbort(state, m_stepper, m_navigator,
                                            logger())) {
+      ACTS_DEBUG("\tPropagation terminated by actor or aborter.");
       terminatedNormally = true;
       break;
     }
@@ -168,7 +172,7 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
     return PropagatorError::StepCountLimitReached;
   }
 
-  ACTS_VERBOSE("Stepping loop done.");
+  ACTS_DEBUG("Stepping loop done.");
 
   state.stage = PropagatorStage::postPropagation;
 

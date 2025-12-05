@@ -354,7 +354,7 @@ class CombinatorialKalmanFilter {
     void reset(propagator_state_t& state, const stepper_t& stepper,
                const navigator_t& navigator, result_type& result) const {
       if (result.activeBranches.empty()) {
-        ACTS_VERBOSE("Stop CKF with " << result.collectedTracks.size()
+        ACTS_DEBUG("Stop CKF with " << result.collectedTracks.size()
                                       << " found tracks");
         result.finished = true;
 
@@ -470,7 +470,25 @@ class CombinatorialKalmanFilter {
             state.geoContext, *calibrationContextPtr, *surface, boundState,
             prevTip, result.trackStateCandidates, *result.trackStates,
             logger());
+        ACTS_DEBUG("\tCreated track states on surface " << surface->geometryId());
       }
+      
+      // Get local position on the surface
+      BoundaryTolerance tol = BoundaryTolerance::AbsoluteEuclidean(-0.1);
+      auto localPosResult = surface->globalToLocal(state.geoContext, 
+                                                   stepper.position(state.stepping),
+                                                   stepper.direction(state.stepping));
+      if (!localPosResult.ok()) {
+        ACTS_ERROR("Failed to compute local position on surface "
+                    << surface->geometryId() << ": "
+                    << localPosResult.error().message());
+        return localPosResult.error();
+      }
+      Vector2 localPosition = localPosResult.value();
+      bool atBoundary = !( surface->insideBounds(localPosition, tol) );
+      ACTS_DEBUG("\t\tTrack position on surface " << surface->geometryId() 
+                  << ": local=" << localPosition.transpose() 
+                  << " atBoundary=" << atBoundary);
 
       if (tsRes.ok() && !(*tsRes).empty()) {
         const CkfTypes::BranchVector<TrackIndexType>& newTrackStateList =
@@ -485,7 +503,7 @@ class CombinatorialKalmanFilter {
         unsigned int nBranchesOnSurface = *procRes;
 
         if (nBranchesOnSurface == 0) {
-          ACTS_VERBOSE("All branches on surface " << surface->geometryId()
+          ACTS_DEBUG("All branches on surface " << surface->geometryId()
                                                   << " have been stopped");
 
           reset(state, stepper, navigator, result);
@@ -511,7 +529,7 @@ class CombinatorialKalmanFilter {
         }
 
         if (expectMeasurements) {
-          ACTS_VERBOSE("Detected hole after measurement selection on surface "
+          ACTS_DEBUG("\tDetected hole after measurement selection on surface "
                        << surface->geometryId());
         }
 
@@ -523,7 +541,11 @@ class CombinatorialKalmanFilter {
                                   expectMeasurements, prevTip);
         currentBranch.tipIndex() = currentTip;
         auto currentState = currentBranch.outermostTrackState();
-        if (expectMeasurements) {
+        if (expectMeasurements && atBoundary) {
+          ACTS_DEBUG("\t\tSaid hole is on the boundary of the surface");
+          currentBranch.nEdgeHoles()++;
+          ACTS_DEBUG("\t\tTotal nEdgeHoles = " << currentBranch.nEdgeHoles());
+        } else if (expectMeasurements) {
           currentBranch.nHoles()++;
         }
 
@@ -536,14 +558,18 @@ class CombinatorialKalmanFilter {
         } else {
           // No branch on this surface
           if (branchStopperResult == BranchStopperResult::StopAndKeep) {
+            ACTS_DEBUG("1st Branch on surface " << surface->geometryId()
+                       << " has been stopped with BranchStopperResult= " 
+                       << static_cast<int>(branchStopperResult));
             storeLastActiveBranch(result);
           }
           // Remove the branch from list
           result.activeBranches.pop_back();
 
           // Branch on the surface has been stopped - reset
-          ACTS_VERBOSE("Branch on surface " << surface->geometryId()
-                                            << " has been stopped");
+          ACTS_DEBUG("2nd Branch on surface " << surface->geometryId()
+                     << " has been stopped with BranchStopperResult= " 
+                     << static_cast<int>(branchStopperResult));
 
           reset(state, stepper, navigator, result);
 
@@ -925,6 +951,12 @@ class CombinatorialKalmanFilter {
     auto combKalmanResult =
         std::move(propRes.template get<
                   CombinatorialKalmanFilterResult<track_container_t>>());
+
+    ACTS_DEBUG("CombinatorialKalmanFilter finished with "
+                << combKalmanResult.collectedTracks.size()
+                << " collected tracks, the first has "
+                << combKalmanResult.collectedTracks.front().nMeasurements()
+                << " measurements.");
 
     Result<void> error = combKalmanResult.lastError;
     if (error.ok() && !combKalmanResult.finished) {
