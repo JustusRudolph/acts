@@ -283,8 +283,7 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
             static_cast<std::size_t>(state.typeFlags().isMeasurement());
         nOutliers += static_cast<std::size_t>(state.typeFlags().isOutlier());
         nHoles += static_cast<std::size_t>(state.typeFlags().isHole());
-        nEdgeHoles +=
-            static_cast<std::size_t>(state.typeFlags().isEdgeHole());
+        nEdgeHoles += static_cast<std::size_t>(state.typeFlags().isEdgeHole());
         nSharedHits +=
             static_cast<std::size_t>(state.typeFlags().isSharedHit());
       }

@@ -91,7 +91,7 @@ TrackSummaryPlotTool::TrackSummaryPlotTool(
 void TrackSummaryPlotTool::fill(
     const Acts::BoundTrackParameters& fittedParameters, std::size_t nStates,
     std::size_t nMeasurements, std::size_t nOutliers, std::size_t nHoles,
-    std::size_t nEdgeHoles,std::size_t nSharedHits) {
+    std::size_t nEdgeHoles, std::size_t nSharedHits) {
   using Acts::VectorHelpers::eta;
   using Acts::VectorHelpers::perp;
   const auto momentum = fittedParameters.momentum();
@@ -104,8 +104,8 @@ void TrackSummaryPlotTool::fill(
   m_profiles.at("nOutliers_vs_eta")
       .fill({fit_eta}, static_cast<double>(nOutliers));
   m_profiles.at("nHoles_vs_eta").fill({fit_eta}, static_cast<double>(nHoles));
-    m_profiles.at("nEdgeHoles_vs_eta")
-        .fill({fit_eta}, static_cast<double>(nEdgeHoles));
+  m_profiles.at("nEdgeHoles_vs_eta")
+      .fill({fit_eta}, static_cast<double>(nEdgeHoles));
   m_profiles.at("nSharedHits_vs_eta")
       .fill({fit_eta}, static_cast<double>(nSharedHits));
 
@@ -115,8 +115,8 @@ void TrackSummaryPlotTool::fill(
   m_profiles.at("nOutliers_vs_pT")
       .fill({fit_pT}, static_cast<double>(nOutliers));
   m_profiles.at("nHoles_vs_pT").fill({fit_pT}, static_cast<double>(nHoles));
-    m_profiles.at("nEdgeHoles_vs_pT")
-        .fill({fit_pT}, static_cast<double>(nEdgeHoles));
+  m_profiles.at("nEdgeHoles_vs_pT")
+      .fill({fit_pT}, static_cast<double>(nEdgeHoles));
   m_profiles.at("nSharedHits_vs_pT")
       .fill({fit_pT}, static_cast<double>(nSharedHits));
 }
