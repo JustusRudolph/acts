@@ -529,15 +529,7 @@ class CombinatorialKalmanFilter {
           }
         }
 
-        auto stateMask = PM::Predicted | PM::Jacobian;
-
-        // Add a hole or material track state to the multitrajectory
-        TrackIndexType currentTip =
-            addNonSourcelinkState(stateMask, boundState, result, isSensitive,
-                                  expectMeasurements, prevTip);
-        currentBranch.tipIndex() = currentTip;
-        auto currentState = currentBranch.outermostTrackState();
-
+        bool atBoundary = false;
         if (expectMeasurements) {
           // Get local position on the surface, only calculate if expecting measurements
           BoundaryTolerance tol = BoundaryTolerance::AbsoluteEuclidean(-0.1);
@@ -551,7 +543,7 @@ class CombinatorialKalmanFilter {
             return localPosResult.error();
           }
           Vector2 localPosition = localPosResult.value();
-          bool atBoundary = !( surface->insideBounds(localPosition, tol) );
+          atBoundary = !( surface->insideBounds(localPosition, tol) );
 
           if (atBoundary) {
             ACTS_VERBOSE("Detected edge hole after measurement selection on surface "
@@ -563,6 +555,15 @@ class CombinatorialKalmanFilter {
             currentBranch.nHoles()++;
           }
         }
+
+        auto stateMask = PM::Predicted | PM::Jacobian;
+        // Add a hole or material track state to the multitrajectory
+        TrackIndexType currentTip =
+            addNonSourcelinkState(stateMask, boundState, result, isSensitive,
+                                  expectMeasurements, atBoundary, prevTip);
+        currentBranch.tipIndex() = currentTip;
+        auto currentState = currentBranch.outermostTrackState();
+
 
         BranchStopperResult branchStopperResult =
             extensions.branchStopper(currentBranch, currentState);
@@ -725,7 +726,7 @@ class CombinatorialKalmanFilter {
     TrackIndexType addNonSourcelinkState(TrackStatePropMask stateMask,
                                          const BoundState& boundState,
                                          result_type& result, bool isSensitive,
-                                         bool expectMeasurements,
+                                         bool expectMeasurements, bool atBoundary,
                                          TrackIndexType prevTip) const {
       using PM = TrackStatePropMask;
 
@@ -756,9 +757,12 @@ class CombinatorialKalmanFilter {
         typeFlags.set(TrackStateFlag::MaterialFlag);
       }
       typeFlags.set(TrackStateFlag::ParameterFlag);
-      if (isSensitive) {
-        typeFlags.set(expectMeasurements ? TrackStateFlag::HoleFlag
-                                         : TrackStateFlag::NoExpectedHitFlag);
+      if (isSensitive && expectMeasurements && atBoundary) {
+        typeFlags.set(TrackStateFlag::EdgeHoleFlag);
+      } else if (isSensitive && expectMeasurements) {
+        typeFlags.set(TrackStateFlag::HoleFlag);
+      } else if (isSensitive) {
+        typeFlags.set(TrackStateFlag::NoExpectedHitFlag);
       }
 
       // Set the filtered parameter index to be the same with predicted

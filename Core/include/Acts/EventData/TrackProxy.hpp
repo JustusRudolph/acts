@@ -29,6 +29,7 @@ inline constexpr HashedString kTipIndexKey = hashString("tipIndex");
 inline constexpr HashedString kStemIndexKey = hashString("stemIndex");
 inline constexpr HashedString kMeasurementsKey = hashString("nMeasurements");
 inline constexpr HashedString kHolesKey = hashString("nHoles");
+inline constexpr HashedString kEdgeHolesKey = hashString("nEdgeHoles");
 inline constexpr HashedString kOutliersKey = hashString("nOutliers");
 inline constexpr HashedString kSharedHitsKey = hashString("nSharedHits");
 inline constexpr HashedString kChi2Key = hashString("chi2");
@@ -404,13 +405,13 @@ class TrackProxy {
   unsigned int& nEdgeHoles()
     requires(!ReadOnly)
   {
-    return component<unsigned int, hashString("nEdgeHoles")>();
+    return component<unsigned int, detail_tp::kEdgeHolesKey>();
   }
 
   /// Return the number of holes for the track. Const version
   /// @return The number of holes
   unsigned int nEdgeHoles() const {
-    return component<unsigned int, hashString("nEdgeHoles")>();
+    return component<unsigned int, detail_tp::kEdgeHolesKey>();
   }
 
   /// Return a mutable reference to the number of outliers for the track.
