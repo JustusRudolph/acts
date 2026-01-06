@@ -40,6 +40,9 @@ void TrackSummaryPlotTool::book(Cache& cache, const std::string& prefix) const {
   cache.nHoles_vs_eta =
       PlotHelpers::bookProf(addPrefix("nHoles_vs_eta").c_str(),
                             "Number of holes vs. #eta", bEta, bNum);
+  cache.nEdgeHoles_vs_eta =
+      PlotHelpers::bookProf(addPrefix("nEdgeHoles_vs_eta").c_str(),
+                            "Number of edge holes vs. #eta", bEta, bNum);
   // number of outliers versus eta
   cache.nOutliers_vs_eta =
       PlotHelpers::bookProf(addPrefix("nOutliers_vs_eta").c_str(),
@@ -59,6 +62,9 @@ void TrackSummaryPlotTool::book(Cache& cache, const std::string& prefix) const {
   // number of holes versus pt
   cache.nHoles_vs_pt = PlotHelpers::bookProf(
       addPrefix("nHoles_vs_pT").c_str(), "Number of holes vs. pT", bPt, bNum);
+  // number of edge holes versus pt
+  cache.nEdgeHoles_vs_pt = PlotHelpers::bookProf(
+      addPrefix("nEdgeHoles_vs_pT").c_str(), "Number of edge holes vs. pT", bPt, bNum);
   // number of outliers versus pt
   cache.nOutliers_vs_pt =
       PlotHelpers::bookProf(addPrefix("nOutliers_vs_pT").c_str(),
@@ -74,11 +80,13 @@ void TrackSummaryPlotTool::clear(Cache& cache) const {
   delete cache.nMeasurements_vs_eta;
   delete cache.nOutliers_vs_eta;
   delete cache.nHoles_vs_eta;
+  delete cache.nEdgeHoles_vs_eta;
   delete cache.nSharedHits_vs_eta;
   delete cache.nStates_vs_pt;
   delete cache.nMeasurements_vs_pt;
   delete cache.nOutliers_vs_pt;
   delete cache.nHoles_vs_pt;
+  delete cache.nEdgeHoles_vs_pt;
   delete cache.nSharedHits_vs_pt;
 }
 
@@ -88,18 +96,20 @@ void TrackSummaryPlotTool::write(const Cache& cache) const {
   cache.nMeasurements_vs_eta->Write();
   cache.nOutliers_vs_eta->Write();
   cache.nHoles_vs_eta->Write();
+  cache.nEdgeHoles_vs_eta->Write();
   cache.nSharedHits_vs_eta->Write();
   cache.nStates_vs_pt->Write();
   cache.nMeasurements_vs_pt->Write();
   cache.nOutliers_vs_pt->Write();
   cache.nHoles_vs_pt->Write();
+  cache.nEdgeHoles_vs_pt->Write();
   cache.nSharedHits_vs_pt->Write();
 }
 
 void TrackSummaryPlotTool::fill(
     Cache& cache, const Acts::BoundTrackParameters& fittedParameters,
     std::size_t nStates, std::size_t nMeasurements, std::size_t nOutliers,
-    std::size_t nHoles, std::size_t nSharedHits) const {
+    std::size_t nHoles, std::size_t nEdgeHoles, std::size_t nSharedHits) const {
   using Acts::VectorHelpers::eta;
   using Acts::VectorHelpers::perp;
   const auto momentum = fittedParameters.momentum();
@@ -110,12 +120,14 @@ void TrackSummaryPlotTool::fill(
   PlotHelpers::fillProf(cache.nMeasurements_vs_eta, fit_eta, nMeasurements);
   PlotHelpers::fillProf(cache.nOutliers_vs_eta, fit_eta, nOutliers);
   PlotHelpers::fillProf(cache.nHoles_vs_eta, fit_eta, nHoles);
+  PlotHelpers::fillProf(cache.nEdgeHoles_vs_eta, fit_eta, nEdgeHoles);
   PlotHelpers::fillProf(cache.nSharedHits_vs_eta, fit_eta, nSharedHits);
 
   PlotHelpers::fillProf(cache.nStates_vs_pt, fit_pT, nStates);
   PlotHelpers::fillProf(cache.nMeasurements_vs_pt, fit_pT, nMeasurements);
   PlotHelpers::fillProf(cache.nOutliers_vs_pt, fit_pT, nOutliers);
   PlotHelpers::fillProf(cache.nHoles_vs_pt, fit_pT, nHoles);
+  PlotHelpers::fillProf(cache.nEdgeHoles_vs_pt, fit_pT, nEdgeHoles);
   PlotHelpers::fillProf(cache.nSharedHits_vs_pt, fit_pT, nSharedHits);
 }
 

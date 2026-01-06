@@ -41,6 +41,8 @@ class TrackSummaryPlotTool {
     TProfile* nMeasurements_vs_eta;
     /// Number of holes vs eta
     TProfile* nHoles_vs_eta;
+    /// Number of edge holes vs eta
+    TProfile* nEdgeHoles_vs_eta;
     /// Number of outliers vs eta
     TProfile* nOutliers_vs_eta;
     /// Number of Shared Hits vs eta
@@ -51,6 +53,8 @@ class TrackSummaryPlotTool {
     TProfile* nMeasurements_vs_pt;
     /// Number of holes vs pt
     TProfile* nHoles_vs_pt;
+    /// Number of edge holes vs pt
+    TProfile* nEdgeHoles_vs_pt;
     /// Number of outliers vs pt
     TProfile* nOutliers_vs_pt;
     /// Number of Shared Hits vs pt
@@ -77,11 +81,12 @@ class TrackSummaryPlotTool {
   /// @param nMeasurements number of measurements
   /// @param nOutliers number of outliers
   /// @param nHoles number of holes
+  /// @param nEdgeHoles number of edge holes
+  /// @param nSharedHits number of shared hits
   void fill(Cache& cache, const Acts::BoundTrackParameters& fittedParameters,
             std::size_t nStates, std::size_t nMeasurements,
             std::size_t Outliers, std::size_t nHoles,
-            std::size_t nSharedHits) const;
-
+            std::size_t nEdgeHoles, std::size_t nSharedHits) const;
   /// @brief write the track info plots to file
   ///
   /// @param cache cache object for track info plots

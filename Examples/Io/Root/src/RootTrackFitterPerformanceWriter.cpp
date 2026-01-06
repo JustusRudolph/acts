@@ -151,7 +151,7 @@ ActsExamples::RootTrackFitterPerformanceWriter::writeT(
     m_trackSummaryPlotTool.fill(m_trackSummaryPlotCache, fittedParameters,
                                 track.nTrackStates(), track.nMeasurements(),
                                 track.nOutliers(), track.nHoles(),
-                                track.nSharedHits());
+                                track.nEdgeHoles(), track.nSharedHits());
   }
 
   // Fill the efficiency, defined as the ratio between number of tracks with
