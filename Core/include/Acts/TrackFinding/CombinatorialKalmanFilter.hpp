@@ -595,7 +595,7 @@ class CombinatorialKalmanFilter {
             return localPosResult.error();
           }
           Vector2 localPosition = localPosResult.value();
-          bool atBoundary = !( surface->insideBounds(localPosition, tol) );
+          atBoundary = !( surface->insideBounds(localPosition, tol) );
 
           if (atBoundary) {
             ACTS_VERBOSE("Detected edge hole after measurement selection on surface "
@@ -607,6 +607,15 @@ class CombinatorialKalmanFilter {
             currentBranch.nHoles()++;
           }
         }
+
+        auto stateMask = PM::Predicted | PM::Jacobian;
+        // Add a hole or material track state to the multitrajectory
+        TrackIndexType currentTip =
+            addNonSourcelinkState(stateMask, boundState, result, isSensitive,
+                                  expectMeasurements, atBoundary, prevTip);
+        currentBranch.tipIndex() = currentTip;
+        auto currentState = currentBranch.outermostTrackState();
+
 
         BranchStopperResult branchStopperResult =
             extensions.branchStopper(currentBranch, currentState);
