@@ -39,15 +39,15 @@ enum class TrackStateFlag {
   HoleFlag [[deprecated("Replaced by IsHole; consider to use "
                         "isHole()/setIsHole() instead")]] = 3,
   MaterialFlag [[deprecated("Replaced by HasMaterial; consider to use "
-                            "hasMaterial()/setHasMaterial() instead")]] = 4,
+                            "hasMaterial()/setHasMaterial() instead")]] = 5,
   SharedHitFlag [[deprecated("Replaced by IsSharedHit; consider to use "
-                             "isSharedHit()/setIsSharedHit() instead")]] = 5,
+                             "isSharedHit()/setIsSharedHit() instead")]] = 6,
   SplitHitFlag [[deprecated("Replaced by IsSplitHit; consider to use "
-                            "isSplitHit()/setIsSplitHit() instead")]] = 6,
+                            "isSplitHit()/setIsSplitHit() instead")]] = 7,
   NoExpectedHitFlag
   [[deprecated("Replaced by HasNoExpectedHit; consider to use "
-               "hasNoExpectedHit()/setHasNoExpectedHit() instead")]] = 7,
-  NumTrackStateFlags [[deprecated("Replaced by NumFlags")]] = 8,
+               "hasNoExpectedHit()/setHasNoExpectedHit() instead")]] = 8,
+  NumTrackStateFlags [[deprecated("Replaced by NumFlags")]] = 9,
 
   /// Indicates that the track state has an associated measurement.
   /// Note that an outlier also has a measurement.
@@ -58,16 +58,19 @@ enum class TrackStateFlag {
   IsOutlier = 2,
   /// Indicates that the track state has a hole (missing measurement).
   IsHole = 3,
+  /// Indicates that the track state has an edge hole
+  /// (missing measurement at the edge of the surface).
+  IsEdgeHole = 4,
   /// Indicates that the track state has associated material.
-  HasMaterial = 4,
+  HasMaterial = 5,
   /// Indicates that the track state has a shared hit measurement.
-  IsSharedHit = 5,
+  IsSharedHit = 6,
   /// Indicates that the track state has a split hit measurement.
-  IsSplitHit = 6,
+  IsSplitHit = 7,
   /// Indicates that the track state has no expected hit.
-  HasNoExpectedHit = 7,
+  HasNoExpectedHit = 8,
   /// Number of defined flags.
-  NumFlags = 8
+  NumFlags = 9
 };
 
 /// CRTP base class for @c TrackStateType and @c TrackStateTypeMap
@@ -134,6 +137,10 @@ class TrackStateTypeBase {
   /// @return true if it is a hole
   bool isHole() const { return test(IsHole); }
 
+  /// Checks if the track state is an edge hole
+  /// @return true if it is an edge hole
+  bool isEdgeHole() const { return test(IsEdgeHole); }
+
   /// Checks if the track state has a shared hit
   /// @return true if it has a shared hit
   bool isSharedHit() const { return test(IsSharedHit); }
@@ -187,6 +194,7 @@ class TrackStateTypeBase {
     setUnchecked(HasMeasurement, false);
     setUnchecked(IsOutlier, false);
     setUnchecked(IsHole, false);
+    setUnchecked(IsEdgeHole, false);
     setUnchecked(IsSharedHit, false);
     setUnchecked(IsSplitHit, false);
     setUnchecked(HasNoExpectedHit, false);
@@ -202,6 +210,7 @@ class TrackStateTypeBase {
   {
     setUnchecked(IsOutlier, false);
     setUnchecked(IsHole, false);
+    setUnchecked(IsEdgeHole, false);
     setUnchecked(HasNoExpectedHit, false);
     setUnchecked(HasMeasurement, true);
     assertConsistency();
@@ -217,6 +226,7 @@ class TrackStateTypeBase {
     if (value) {
       setUnchecked(HasMeasurement, true);
       setUnchecked(IsHole, false);
+      setUnchecked(IsEdgeHole, false);
       setUnchecked(HasNoExpectedHit, false);
     }
     setUnchecked(IsOutlier, value);
@@ -233,9 +243,27 @@ class TrackStateTypeBase {
     if (value) {
       setUnchecked(HasMeasurement, false);
       setUnchecked(IsOutlier, false);
+      setUnchecked(IsEdgeHole, false);
       setUnchecked(HasNoExpectedHit, false);
     }
     setUnchecked(IsHole, value);
+    assertConsistency();
+    return self();
+  }
+
+  /// Sets the track state to be an edge hole
+  /// @param value the value to set
+  /// @return self-reference for chaining
+  Derived& setIsEdgeHole(bool value = true)
+    requires(!ReadOnly)
+  {
+    if (value) {
+      setUnchecked(HasMeasurement, false);
+      setUnchecked(IsOutlier, false);
+      setUnchecked(IsHole, false);  // is technically a hole, but false to keep exclusive
+      setUnchecked(HasNoExpectedHit, false);
+    }
+    setUnchecked(IsEdgeHole, value);
     assertConsistency();
     return self();
   }
@@ -280,6 +308,7 @@ class TrackStateTypeBase {
       setUnchecked(HasMeasurement, false);
       setUnchecked(IsOutlier, false);
       setUnchecked(IsHole, false);
+      setUnchecked(IsEdgeHole, false);
       setUnchecked(IsSharedHit, false);
       setUnchecked(IsSplitHit, false);
     }
@@ -319,6 +348,8 @@ class TrackStateTypeBase {
       append("IsOutlier", true);
     } else if (t.isHole()) {
       append("IsHole", true);
+    } else if (t.isEdgeHole()) {
+      append("IsEdgeHole", true);
     } else {
       append("HasMeas", t.hasMeasurement());
     }
@@ -372,13 +403,13 @@ class TrackStateTypeBase {
   void assertConsistency() const {
     assert(!(test(HasNoExpectedHit) &&
              (test(HasMeasurement) || test(IsOutlier) || test(IsHole) ||
-              test(IsSharedHit) || test(IsSplitHit))) &&
+              test(IsEdgeHole) || test(IsSharedHit) || test(IsSplitHit))) &&
            "TrackStateType - NoExpectedHit cannot be set with other "
            "measurement flags");
-    assert(!(test(IsOutlier) && test(IsHole)) &&
+    assert(!(test(IsOutlier) && (test(IsHole) || test(IsEdgeHole))) &&
            "TrackStateType - Outlier and Hole cannot be set simultaneously");
     assert(
-        !(test(IsHole) && test(HasMeasurement)) &&
+        !((test(IsHole) || test(IsEdgeHole)) && test(HasMeasurement)) &&
         "TrackStateType - Hole and Measurement cannot be set simultaneously");
     assert(!(test(IsOutlier) && !test(HasMeasurement)) &&
            "TrackStateType - Outlier flag requires Measurement flag to be set");

@@ -26,7 +26,6 @@ VectorTrackContainerBase::VectorTrackContainerBase(
       m_cov{other.m_cov},
       m_referenceSurfaces{other.m_referenceSurfaces},
       m_nMeasurements{other.m_nMeasurements},
-      m_nEdgeHoles{other.m_nEdgeHoles},
       m_nHoles{other.m_nHoles},
       m_nEdgeHoles{other.m_nEdgeHoles},
       m_chi2{other.m_chi2},
