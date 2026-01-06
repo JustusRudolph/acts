@@ -156,6 +156,7 @@ class VectorTrackContainerBase {
       case "cov"_hash:
       case "nMeasurements"_hash:
       case "nHoles"_hash:
+      case "nEdgeHoles"_hash:
       case "chi2"_hash:
       case "ndf"_hash:
       case "nOutliers"_hash:

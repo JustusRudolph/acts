@@ -22,15 +22,16 @@ namespace Acts {
 ///
 /// This enum describes the type of TrackState
 enum TrackStateFlag {
-  MeasurementFlag = 0,
-  ParameterFlag = 1,
-  OutlierFlag = 2,
-  HoleFlag = 3,
-  MaterialFlag = 4,
-  SharedHitFlag = 5,
-  SplitHitFlag = 6,
-  NoExpectedHitFlag = 7,
-  NumTrackStateFlags = 8,
+  MeasurementFlag,
+  ParameterFlag,
+  OutlierFlag,
+  HoleFlag,
+  EdgeHoleFlag,
+  MaterialFlag,
+  SharedHitFlag,
+  SplitHitFlag,
+  NoExpectedHitFlag,
+  NumTrackStateFlags,
 };
 
 class ConstTrackStateType;
