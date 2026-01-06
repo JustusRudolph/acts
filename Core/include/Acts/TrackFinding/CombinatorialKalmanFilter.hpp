@@ -582,6 +582,31 @@ class CombinatorialKalmanFilter {
         currentBranch.tipIndex() = currentTip;
         auto currentState = currentBranch.outermostTrackState();
 
+        if (expectMeasurements) {
+          // Get local position on the surface, only calculate if expecting measurements
+          BoundaryTolerance tol = BoundaryTolerance::AbsoluteEuclidean(-0.1);
+          auto localPosResult = surface->globalToLocal(state.geoContext,
+                                                      stepper.position(state.stepping),
+                                                      stepper.direction(state.stepping));
+          if (!localPosResult.ok()) {
+            ACTS_ERROR("Failed to compute local position on surface "
+                        << surface->geometryId() << ": "
+                        << localPosResult.error().message());
+            return localPosResult.error();
+          }
+          Vector2 localPosition = localPosResult.value();
+          bool atBoundary = !( surface->insideBounds(localPosition, tol) );
+
+          if (atBoundary) {
+            ACTS_VERBOSE("Detected edge hole after measurement selection on surface "
+                         << surface->geometryId());
+            currentBranch.nEdgeHoles()++;
+          } else {
+            ACTS_VERBOSE("Detected hole after measurement selection on surface "
+                         << surface->geometryId());
+            currentBranch.nHoles()++;
+          }
+        }
 
         BranchStopperResult branchStopperResult =
             extensions.branchStopper(currentBranch, currentState);
