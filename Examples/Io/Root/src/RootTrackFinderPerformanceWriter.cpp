@@ -367,34 +367,43 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
     for (const auto& particle : particles) {
       auto particleId = particle.particleId();
 
-      m_treeParticleVertexPrimary = particleId.vertexPrimary();
-      m_treeParticleVertexSecondary = particleId.vertexSecondary();
-      m_treeParticleParticle = particleId.particle();
-      m_treeParticleGeneration = particleId.generation();
-      m_treeParticleSubParticle = particleId.subParticle();
-      m_eta = eta(particle.direction());
-      m_phi = particle.phi();
-      m_nHits = particle.numberOfHits();
-      m_isSecondary = particle.isSecondary();
+      m_treeParticleVertexPrimary.push_back(particleId.vertexPrimary());
+      m_treeParticleVertexSecondary.push_back(particleId.vertexSecondary());
+      m_treeParticleParticle.push_back(particleId.particle());
+      m_treeParticleGeneration.push_back(particleId.generation());
+      m_treeParticleSubParticle.push_back(particleId.subParticle());
+      m_eta.push_back(eta(particle.direction()));
+      m_phi.push_back(particle.phi());
+      m_nHits.push_back(particle.numberOfHits());
+      m_isSecondary.push_back(particle.isSecondary());
 
-      m_treeIsMatched = false;
+      m_treeIsMatched.push_back(false);
       if (auto imatched = particleTrackMatching.find(particleId);
           imatched != particleTrackMatching.end()) {
-        m_treeIsMatched = imatched->second.track.has_value();
+        m_treeIsMatched.back() = imatched->second.track.has_value();
+        // vector of track indices per particle: first index is the non-duplicate match
+        m_matchedTrackIdxs.push_back({imatched->second.track.value().first});
 
-        m_matchedTrackIdxs.push_back(
-            imatched->second.track.value().first);
         for (const auto& trackWithWeight : imatched->second.duplicateIdxs) {
-          // push back the track index only (ignore weight)
-          m_matchedTrackIdxs.push_back(trackWithWeight.first);
+          // push back the track index of duplicates only (ignore weight)
+          m_matchedTrackIdxs.back().push_back(trackWithWeight.first);
         }
       }
 
-      m_matchingTree->Fill();
-
-      // clear vectors for next particle
-      m_matchedTrackIdxs.clear();
     }
+    m_matchingTree->Fill();
+    // Clear vectors for next event
+    m_treeParticleVertexPrimary.clear();
+    m_treeParticleVertexSecondary.clear();
+    m_treeParticleParticle.clear();
+    m_treeParticleGeneration.clear();
+    m_treeParticleSubParticle.clear();
+    m_treeIsMatched.clear();
+    m_matchedTrackIdxs.clear();
+    m_eta.clear();
+    m_phi.clear();
+    m_nHits.clear();
+    m_isSecondary.clear();
   }
 
   return ProcessCode::SUCCESS;

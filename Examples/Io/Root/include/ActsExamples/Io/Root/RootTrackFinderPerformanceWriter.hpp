@@ -117,17 +117,17 @@ class RootTrackFinderPerformanceWriter final
 
   /// Variables to fill in the TTree
   std::uint32_t m_treeEventNr{};
-  std::uint32_t m_treeParticleVertexPrimary{};
-  std::uint32_t m_treeParticleVertexSecondary{};
-  std::uint32_t m_treeParticleParticle{};
-  std::uint32_t m_treeParticleGeneration{};
-  std::uint32_t m_treeParticleSubParticle{};
-  bool m_treeIsMatched{};
-  std::vector<std::size_t> m_matchedTrackIdxs;
-  float m_eta{};
-  float m_phi{};
-  std::size_t m_nHits{};
-  bool m_isSecondary{};
+  std::vector<std::uint32_t> m_treeParticleVertexPrimary{};
+  std::vector<std::uint32_t> m_treeParticleVertexSecondary{};
+  std::vector<std::uint32_t> m_treeParticleParticle{};
+  std::vector<std::uint32_t> m_treeParticleGeneration{};
+  std::vector<std::uint32_t> m_treeParticleSubParticle{};
+  std::vector<bool> m_treeIsMatched{};
+  std::vector<std::vector<std::size_t>> m_matchedTrackIdxs;
+  std::vector<float> m_eta{};
+  std::vector<float> m_phi{};
+  std::vector<std::size_t> m_nHits{};
+  std::vector<bool> m_isSecondary{};
 
   // Adding numbers for efficiency, fake, duplicate calculations
   std::size_t m_nTotalTracks = 0;
