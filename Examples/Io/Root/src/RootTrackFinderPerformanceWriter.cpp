@@ -79,6 +79,11 @@ RootTrackFinderPerformanceWriter::RootTrackFinderPerformanceWriter(
     m_matchingTree->Branch("particle_id_sub_particle",
                            &m_treeParticleSubParticle);
     m_matchingTree->Branch("matched", &m_treeIsMatched);
+    m_matchingTree->Branch("matchedTrackIdxs", &m_matchedTrackIdxs);
+    m_matchingTree->Branch("eta", &m_eta);
+    m_matchingTree->Branch("phi", &m_phi);
+    m_matchingTree->Branch("nHits", &m_nHits);
+    m_matchingTree->Branch("isSecondary", &m_isSecondary);
   }
 
   // initialize the plot tools
@@ -358,23 +363,37 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
 
   // Write additional stuff to TTree
   if (m_cfg.writeMatchingDetails && m_matchingTree != nullptr) {
+    m_treeEventNr = ctx.eventNumber;  // same for all particles in this event
     for (const auto& particle : particles) {
       auto particleId = particle.particleId();
 
-      m_treeEventNr = ctx.eventNumber;
       m_treeParticleVertexPrimary = particleId.vertexPrimary();
       m_treeParticleVertexSecondary = particleId.vertexSecondary();
       m_treeParticleParticle = particleId.particle();
       m_treeParticleGeneration = particleId.generation();
       m_treeParticleSubParticle = particleId.subParticle();
+      m_eta = eta(particle.direction());
+      m_phi = particle.phi();
+      m_nHits = particle.numberOfHits();
+      m_isSecondary = particle.isSecondary();
 
       m_treeIsMatched = false;
       if (auto imatched = particleTrackMatching.find(particleId);
           imatched != particleTrackMatching.end()) {
         m_treeIsMatched = imatched->second.track.has_value();
+
+        m_matchedTrackIdxs.push_back(
+            imatched->second.track.value().first);
+        for (const auto& trackWithWeight : imatched->second.duplicateIdxs) {
+          // push back the track index only (ignore weight)
+          m_matchedTrackIdxs.push_back(trackWithWeight.first);
+        }
       }
 
       m_matchingTree->Fill();
+
+      // clear vectors for next particle
+      m_matchedTrackIdxs.clear();
     }
   }
 

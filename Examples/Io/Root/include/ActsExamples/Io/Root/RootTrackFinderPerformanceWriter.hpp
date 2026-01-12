@@ -123,6 +123,11 @@ class RootTrackFinderPerformanceWriter final
   std::uint32_t m_treeParticleGeneration{};
   std::uint32_t m_treeParticleSubParticle{};
   bool m_treeIsMatched{};
+  std::vector<std::size_t> m_matchedTrackIdxs;
+  float m_eta{};
+  float m_phi{};
+  std::size_t m_nHits{};
+  bool m_isSecondary{};
 
   // Adding numbers for efficiency, fake, duplicate calculations
   std::size_t m_nTotalTracks = 0;
