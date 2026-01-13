@@ -380,7 +380,10 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
       m_treeIsMatched.push_back(false);
       if (auto imatched = particleTrackMatching.find(particleId);
           imatched != particleTrackMatching.end()) {
-        m_treeIsMatched.back() = imatched->second.track.has_value();
+        if (!imatched->second.track.has_value()) {
+          continue;  // particle has no matched tracks
+        }
+        m_treeIsMatched.back() = true;
         // vector of track indices per particle: first index is the non-duplicate match
         m_matchedTrackIdxs.push_back({imatched->second.track.value().first});
 
