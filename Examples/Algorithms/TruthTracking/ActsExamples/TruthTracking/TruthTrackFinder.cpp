@@ -15,6 +15,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <utility>
+#include <format>
 
 namespace ActsExamples {
 
@@ -61,8 +62,16 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
   ProtoTrackContainer tracks;
   tracks.reserve(particles.size());
 
+  std::string str_to_print = "";
+  if (particles.size() != 1) {
+    str_to_print = std::format("TRUTHTRACKFINDER: (my) event {} Created {} prototracks",
+                               ctx.eventNumber, tracks.size());
+  }
   ACTS_VERBOSE("Create prototracks for " << particles.size() << " particles");
   for (const auto& [i, particle] : Acts::enumerate(particles)) {
+    str_to_print += std::format("\tParticle {} has {} hits.",
+                                particle.particleId().value(),
+                                particle.numberOfHits());
     // find the corresponding hits for this particle
     const auto& measurements =
         makeRange(particleMeasurementsMap.equal_range(particle.particleId()));
@@ -117,6 +126,14 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
 
     // add proto track to the output collection
     tracks.emplace_back(std::move(sortedTrack));
+  }
+  // printf("%s\n", str_to_print.c_str());
+  if (particles.size() != tracks.size()) {
+    printf("TRUTHTRACKFINDER: MISMATCH in event %lu: Created %zu prototracks for %zu particles.\n",
+      ctx.eventNumber, tracks.size(), particles.size());
+  } else {
+    printf("TRUTHTRACKFINDER: Created %zu prototracks for %zu particles in event %lu.\n",
+      tracks.size(), particles.size(), ctx.eventNumber);
   }
 
   m_outputProtoTracks(ctx, std::move(tracks));

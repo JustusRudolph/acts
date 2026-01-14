@@ -135,7 +135,12 @@ ActsExamples::ProcessCode TrackTruthMatcher::execute(
 
         ++particleTrackMatch.duplicates;
       }
-    } else {  // not matched at all, so fake
+    } else {  // not matched, i.e. fake track
+      ACTS_DEBUG("Track %u NOT MATCHED to particle %lu with %lu hits in event %lu.\
+                  Out of %lu track hits, %u were right.\n",
+                  track.tipIndex(), majorityParticleId.value(), ctx.eventNumber,
+                  particleTruthHitCount.at(majorityParticleId),
+                  nMajorityHits, track.nMeasurements());
       trackParticleMatching[track.index()] = {TrackMatchClassification::Fake,
                                               std::nullopt, particleHitCounts};
 

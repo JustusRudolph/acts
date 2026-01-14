@@ -67,6 +67,7 @@ RootTrackFinderPerformanceWriter::RootTrackFinderPerformanceWriter(
   }
 
   if (m_cfg.writeMatchingDetails) {
+    printf("Need to check if we even write this...\n");
     m_matchingTree = new TTree("matchingdetails", "matchingdetails");
 
     m_matchingTree->Branch("event_nr", &m_treeEventNr);
@@ -184,6 +185,7 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
 
   // Read truth input collections
   const auto& particles = m_inputParticles(ctx);
+  // printf("Have %zu particles in event %lu.\n", particles.size(), ctx.eventNumber);
   const auto& trackParticleMatching = m_inputTrackParticleMatching(ctx);
   const auto& particleTrackMatching = m_inputParticleTrackMatching(ctx);
   const auto& particleMeasurementsMap = m_inputParticleMeasurementsMap(ctx);
@@ -366,6 +368,13 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
     m_treeEventNr = ctx.eventNumber;  // same for all particles in this event
     for (const auto& particle : particles) {
       auto particleId = particle.particleId();
+      
+      m_treeParticleId.push_back(particleId.value());
+      m_eta.push_back(eta(particle.direction()));
+      m_phi.push_back(particle.phi());
+      m_nHits.push_back(particle.numberOfHits());
+      m_isSecondary.push_back(particle.isSecondary());
+      m_treeIsMatched.push_back(false);
 
       m_treeParticleVertexPrimary.push_back(particleId.vertexPrimary());
       m_treeParticleVertexSecondary.push_back(particleId.vertexSecondary());

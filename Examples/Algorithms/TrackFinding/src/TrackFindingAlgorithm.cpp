@@ -212,6 +212,9 @@ class BranchStopper {
 
     if (singleConfig == nullptr) {
       ++m_nStoppedBranches;
+      std::cout << "No TrackSelector config found for track with "
+                << track.nMeasurements() << " measurements and "
+                << track.nHoles() << " holes. Stopping branch." << std::endl;
       return BranchStopperResult::StopAndDrop;
     }
 
@@ -242,6 +245,13 @@ class BranchStopper {
 
     if (tooManyHoles || tooManyOutliers || tooManyHolesAndOutliers) {
       ++m_nStoppedBranches;
+      std::cout << "Stopping branch with " << track.nMeasurements()
+                << " measurements, " << track.nHoles() << " holes (max "
+                << singleConfig->maxHoles << "), " << track.nOutliers()
+                << " outliers (max " << singleConfig->maxOutliers
+                << "), and " << ( track.nHoles() + track.nOutliers() )
+                << " holes+outliers (max "
+                << singleConfig->maxHolesAndOutliers << ")." << std::endl;
       return enoughMeasurements ? BranchStopperResult::StopAndKeep
                                 : BranchStopperResult::StopAndDrop;
     }
@@ -388,8 +398,8 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
   extrapolationOptions.endOfWorldVolumeIds = m_cfg.endOfWorldVolumeIds;
 
   // Perform the track finding for all initial parameters
-  ACTS_DEBUG("Invoke track finding with " << initialParameters.size()
-                                          << " seeds.");
+  ACTS_DEBUG("Invoke track finding in event " << ctx.eventNumber <<
+             " with " << initialParameters.size() << " seeds.");
 
   auto trackContainer = std::make_shared<Acts::VectorTrackContainer>();
   auto trackStateContainer = std::make_shared<Acts::VectorMultiTrajectory>();
@@ -447,6 +457,9 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
     for (const auto& seed : *seeds) {
       SeedIdentifier seedIdentifier = makeSeedIdentifier(seed);
       discoveredSeeds.emplace(seedIdentifier, false);
+      ACTS_DEBUG("Created seed identifier in event " << ctx.eventNumber << ": ["
+                 << seedIdentifier[0] << ", " << seedIdentifier[1] << ", "
+                 << seedIdentifier[2] << "].");
     }
   }
 
@@ -484,6 +497,7 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
     auto firstResult = (*m_cfg.findTracks)(firstInitialParameters, firstOptions,
                                            tracksTemp, firstRootBranch);
     nSeed++;
+    ACTS_DEBUG("Track finding succeeded for seed " << iSeed << ".");
 
     if (!firstResult.ok()) {
       m_nFailedSeeds++;
@@ -493,6 +507,10 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
     }
 
     auto& firstTracksForSeed = firstResult.value();
+    ACTS_DEBUG("Found " << firstTracksForSeed.size()
+               << " first pass track candidates for seed " << iSeed
+               << ", the first with "
+               << firstTracksForSeed.front().nMeasurements() << " measurements.");
     for (auto& firstTrack : firstTracksForSeed) {
       // TODO a copy of the track should not be necessary but is the safest way
       //      with the current EDM
@@ -676,8 +694,8 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
     computeSharedHits(tracks, measurements);
   }
 
-  ACTS_DEBUG("Finalized track finding with " << tracks.size()
-                                             << " track candidates.");
+  ACTS_DEBUG("Finalized track finding in event " << ctx.eventNumber <<
+              " with " << tracks.size() << " track candidates.");
 
   m_nStoppedBranches += branchStopper.m_nStoppedBranches;
 

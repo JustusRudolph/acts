@@ -259,6 +259,11 @@ ProcessCode TruthSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   ACTS_VERBOSE("Found " << seeds.size() << " seeds");
 
+  if (particles.size() != tracks.size()) {
+    printf("From %lu truth particles, we created %lu (%lu) seeds (prototracks) in event %lu.\n",
+           particles.size(), seeds.size(), tracks.size(), ctx.eventNumber);
+  }
+
   m_outputParticles(ctx, std::move(seededParticles));
   m_outputProtoTracks(ctx, std::move(tracks));
   m_outputSeeds(ctx, std::move(seeds));
