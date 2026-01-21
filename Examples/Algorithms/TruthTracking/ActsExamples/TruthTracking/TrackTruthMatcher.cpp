@@ -67,7 +67,7 @@ ProcessCode TrackTruthMatcher::execute(const AlgorithmContext& ctx) const {
   // For each particle within a track, how many hits did it contribute
   std::vector<ParticleHitCount> particleHitCounts;
   std::set<unsigned> interesting_events = {16, 374, 429, 813, 927};
-  if ( true || (std::find(interesting_events.begin(), interesting_events.end(),
+  if ( (std::find(interesting_events.begin(), interesting_events.end(),
                   ctx.eventNumber) != interesting_events.end() ) ) {
     ACTS_INFO("event " << ctx.eventNumber << " has "
                         << particles.size() << " particles and "
