@@ -368,13 +368,6 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
     m_treeEventNr = ctx.eventNumber;  // same for all particles in this event
     for (const auto& particle : particles) {
       auto particleId = particle.particleId();
-      
-      m_treeParticleId.push_back(particleId.value());
-      m_eta.push_back(eta(particle.direction()));
-      m_phi.push_back(particle.phi());
-      m_nHits.push_back(particle.numberOfHits());
-      m_isSecondary.push_back(particle.isSecondary());
-      m_treeIsMatched.push_back(false);
 
       m_treeParticleVertexPrimary.push_back(particleId.vertexPrimary());
       m_treeParticleVertexSecondary.push_back(particleId.vertexSecondary());
