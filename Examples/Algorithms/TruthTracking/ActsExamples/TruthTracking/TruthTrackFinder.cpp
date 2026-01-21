@@ -94,15 +94,9 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
         continue;
       }
 
-      const auto simHitIdxIt = measurementSimHitsMap.nth(simHitMapIt->second);
-      if (simHitIdxIt == measurementSimHitsMap.end()) {
-        ACTS_WARNING("No sim hit found for index " << simHitMapIt->second);
-        continue;
-      }
-
-      const auto simHitIt = simHits.nth(simHitIdxIt->second);
+      const auto simHitIt = simHits.nth(simHitMapIt->second);
       if (simHitIt == simHits.end()) {
-        ACTS_WARNING("No sim hit found for index " << simHitIdxIt->second);
+        ACTS_WARNING("No sim hit found for index " << simHitMapIt->second);
         continue;
       }
 
