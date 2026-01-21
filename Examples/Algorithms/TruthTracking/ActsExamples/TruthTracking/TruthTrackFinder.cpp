@@ -69,12 +69,16 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
   }
   ACTS_VERBOSE("Create prototracks for " << particles.size() << " particles");
   for (const auto& [i, particle] : Acts::enumerate(particles)) {
-    str_to_print += std::format("\tParticle {} has {} hits.",
-                                particle.particleId().particle(),
-                                particle.numberOfHits());
     // find the corresponding hits for this particle
     const auto& measurements =
         makeRange(particleMeasurementsMap.equal_range(particle.particleId()));
+    str_to_print += std::format("\tEvent {} Particle {} with pT = {}, eta = {} has {} hits & {} measuremtnents.\n",
+                                ctx.eventNumber,
+                                particle.particleId().particle(),
+                                particle.transverseMomentum(),
+                                Acts::VectorHelpers::eta(particle.direction()),
+                                particle.numberOfHits(),
+                                measurements.size());
     ACTS_VERBOSE(" - Prototrack from " << measurements.size()
                                        << " measurements for particle "
                                        << particle);
@@ -121,14 +125,14 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
     // add proto track to the output collection
     tracks.emplace_back(std::move(sortedTrack));
   }
-  // printf("%s\n", str_to_print.c_str());
-  if (particles.size() != tracks.size()) {
-    printf("TRUTHTRACKFINDER: MISMATCH in event %lu: Created %zu prototracks for %zu particles.\n",
-      ctx.eventNumber, tracks.size(), particles.size());
-  } else {
-    printf("TRUTHTRACKFINDER: Created %zu prototracks for %zu particles in event %lu.\n",
-      tracks.size(), particles.size(), ctx.eventNumber);
-  }
+  printf("%s\n", str_to_print.c_str());
+  // if (particles.size() != tracks.size()) {
+  //   printf("TRUTHTRACKFINDER: MISMATCH in event %lu: Created %zu prototracks for %zu particles.\n",
+  //     ctx.eventNumber, tracks.size(), particles.size());
+  // } else {
+  //   printf("TRUTHTRACKFINDER: Created %zu prototracks for %zu particles in event %lu.\n",
+  //     tracks.size(), particles.size(), ctx.eventNumber);
+  // }
 
   m_outputProtoTracks(ctx, std::move(tracks));
   return ProcessCode::SUCCESS;
