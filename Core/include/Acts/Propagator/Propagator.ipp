@@ -11,7 +11,6 @@
 #include "Acts/Propagator/Propagator.hpp"
 
 #include "Acts/EventData/TrackParametersConcept.hpp"
-#include "Acts/Propagator/ActorList.hpp"
 #include "Acts/Propagator/ConstrainedStep.hpp"
 #include "Acts/Propagator/NavigationTarget.hpp"
 #include "Acts/Propagator/PropagatorError.hpp"
@@ -21,10 +20,11 @@
 
 #include <concepts>
 
+namespace Acts {
+
 template <typename S, typename N>
 template <typename propagator_state_t>
-Acts::Result<void> Acts::Propagator<S, N>::propagate(
-    propagator_state_t& state) const {
+Result<void> Propagator<S, N>::propagate(propagator_state_t& state) const {
   ACTS_VERBOSE("Entering propagation.");
 
   state.stage = PropagatorStage::prePropagation;
@@ -193,12 +193,10 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
-auto Acts::Propagator<S, N>::propagate(const parameters_t& start,
-                                       const propagator_options_t& options,
-                                       bool createFinalParameters) const
-    -> Result<
-        actor_list_t_result_t<StepperBoundTrackParameters,
-                              typename propagator_options_t::actor_list_type>> {
+auto Propagator<S, N>::propagate(const parameters_t& start,
+                                 const propagator_options_t& options,
+                                 bool createFinalParameters) const
+    -> Result<ResultType<propagator_options_t>> {
   static_assert(std::copy_constructible<StepperBoundTrackParameters>,
                 "return track parameter type must be copy-constructible");
 
@@ -220,12 +218,10 @@ auto Acts::Propagator<S, N>::propagate(const parameters_t& start,
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename target_aborter_t, typename path_aborter_t>
-auto Acts::Propagator<S, N>::propagate(
-    const parameters_t& start, const Surface& target,
-    const propagator_options_t& options) const
-    -> Result<
-        actor_list_t_result_t<StepperBoundTrackParameters,
-                              typename propagator_options_t::actor_list_type>> {
+auto Propagator<S, N>::propagate(const parameters_t& start,
+                                 const Surface& target,
+                                 const propagator_options_t& options) const
+    -> Result<ResultType<propagator_options_t>> {
   static_assert(BoundTrackParametersConcept<parameters_t>,
                 "Parameters do not fulfill bound parameters concept.");
 
@@ -247,8 +243,7 @@ auto Acts::Propagator<S, N>::propagate(
 
 template <typename S, typename N>
 template <typename propagator_options_t, typename path_aborter_t>
-auto Acts::Propagator<S, N>::makeState(
-    const propagator_options_t& options) const {
+auto Propagator<S, N>::makeState(const propagator_options_t& options) const {
   // Type of track parameters produced by the propagation
   using ReturnParameterType = StepperBoundTrackParameters;
 
@@ -265,9 +260,7 @@ auto Acts::Propagator<S, N>::makeState(
   auto eOptions = options.extend(actorList);
 
   using OptionsType = decltype(eOptions);
-  using StateType =
-      actor_list_t_state_t<OptionsType,
-                           typename propagator_options_t::actor_list_type>;
+  using StateType = State<OptionsType>;
 
   StateType state{eOptions, m_stepper.makeState(eOptions.stepping),
                   m_navigator.makeState(eOptions.navigation)};
@@ -278,8 +271,8 @@ auto Acts::Propagator<S, N>::makeState(
 template <typename S, typename N>
 template <typename propagator_options_t, typename target_aborter_t,
           typename path_aborter_t>
-auto Acts::Propagator<S, N>::makeState(
-    const Surface& target, const propagator_options_t& options) const {
+auto Propagator<S, N>::makeState(const Surface& target,
+                                 const propagator_options_t& options) const {
   // Expand the actor list with a target and path aborter
   target_aborter_t targetAborter;
   targetAborter.surface = &target;
@@ -293,9 +286,7 @@ auto Acts::Propagator<S, N>::makeState(
   eOptions.navigation.targetSurface = &target;
 
   using OptionsType = decltype(eOptions);
-  using StateType =
-      actor_list_t_state_t<OptionsType,
-                           typename propagator_options_t::actor_list_type>;
+  using StateType = State<OptionsType>;
 
   StateType state{eOptions, m_stepper.makeState(eOptions.stepping),
                   m_navigator.makeState(eOptions.navigation)};
@@ -306,8 +297,8 @@ auto Acts::Propagator<S, N>::makeState(
 template <typename S, typename N>
 template <typename propagator_state_t, typename parameters_t,
           typename path_aborter_t>
-Acts::Result<void> Acts::Propagator<S, N>::initialize(
-    propagator_state_t& state, const parameters_t& start) const {
+Result<void> Propagator<S, N>::initialize(propagator_state_t& state,
+                                          const parameters_t& start) const {
   static_assert(BoundTrackParametersConcept<parameters_t>,
                 "Parameters do not fulfill bound parameters concept.");
 
@@ -337,13 +328,11 @@ Acts::Result<void> Acts::Propagator<S, N>::initialize(
 
 template <typename S, typename N>
 template <typename propagator_state_t, typename propagator_options_t>
-auto Acts::Propagator<S, N>::makeResult(propagator_state_t state,
-                                        Result<void> propagationResult,
-                                        const propagator_options_t& /*options*/,
-                                        bool createFinalParameters) const
-    -> Result<
-        actor_list_t_result_t<StepperBoundTrackParameters,
-                              typename propagator_options_t::actor_list_type>> {
+auto Propagator<S, N>::makeResult(propagator_state_t state,
+                                  Result<void> propagationResult,
+                                  const propagator_options_t& /*options*/,
+                                  bool createFinalParameters) const
+    -> Result<ResultType<propagator_options_t>> {
   // Type of track parameters produced by the propagation
   using ReturnParameterType = StepperBoundTrackParameters;
 
@@ -351,15 +340,13 @@ auto Acts::Propagator<S, N>::makeResult(propagator_state_t state,
                 "return track parameter type must be copy-constructible");
 
   // Type of the full propagation result, including output from actors
-  using ResultType =
-      actor_list_t_result_t<ReturnParameterType,
-                            typename propagator_options_t::actor_list_type>;
+  using ThisResultType = ResultType<propagator_options_t>;
 
   if (!propagationResult.ok()) {
     return propagationResult.error();
   }
 
-  ResultType result{};
+  ThisResultType result{};
   moveStateToResult(state, result);
 
   const Surface* currentSurface = m_navigator.currentSurface(state.navigation);
@@ -388,17 +375,16 @@ auto Acts::Propagator<S, N>::makeResult(propagator_state_t state,
     }
   }
 
-  return Result<ResultType>::success(std::move(result));
+  return Result<ThisResultType>::success(std::move(result));
 }
 
 template <typename S, typename N>
 template <typename propagator_state_t, typename propagator_options_t>
-auto Acts::Propagator<S, N>::makeResult(
-    propagator_state_t state, Result<void> propagationResult,
-    const Surface& target, const propagator_options_t& /*options*/) const
-    -> Result<
-        actor_list_t_result_t<StepperBoundTrackParameters,
-                              typename propagator_options_t::actor_list_type>> {
+auto Propagator<S, N>::makeResult(propagator_state_t state,
+                                  Result<void> propagationResult,
+                                  const Surface& target,
+                                  const propagator_options_t& /*options*/) const
+    -> Result<ResultType<propagator_options_t>> {
   // Type of track parameters produced at the end of the propagation
   using ReturnParameterType = StepperBoundTrackParameters;
 
@@ -406,15 +392,13 @@ auto Acts::Propagator<S, N>::makeResult(
                 "return track parameter type must be copy-constructible");
 
   // Type of the full propagation result, including output from actors
-  using ResultType =
-      actor_list_t_result_t<ReturnParameterType,
-                            typename propagator_options_t::actor_list_type>;
+  using ThisResultType = ResultType<propagator_options_t>;
 
   if (!propagationResult.ok()) {
     return propagationResult.error();
   }
 
-  ResultType result{};
+  ThisResultType result{};
   moveStateToResult(state, result);
 
   // Compute the final results and mark the propagation as successful
@@ -430,13 +414,13 @@ auto Acts::Propagator<S, N>::makeResult(
   if (state.stepping.covTransport) {
     result.transportJacobian = std::get<Jacobian>(bs);
   }
-  return Result<ResultType>::success(std::move(result));
+  return Result<ThisResultType>::success(std::move(result));
 }
 
 template <typename S, typename N>
-template <typename propagator_state_t, typename result_t>
-void Acts::Propagator<S, N>::moveStateToResult(propagator_state_t& state,
-                                               result_t& result) const {
+template <typename propagator_state_t, typename propagator_result_t>
+void Propagator<S, N>::moveStateToResult(propagator_state_t& state,
+                                         propagator_result_t& result) const {
   result.tuple() = std::move(state.tuple());
 
   result.steps = state.steps;
@@ -447,18 +431,18 @@ void Acts::Propagator<S, N>::moveStateToResult(propagator_state_t& state,
 }
 
 template <typename derived_t>
-Acts::Result<Acts::BoundTrackParameters>
-Acts::detail::BasePropagatorHelper<derived_t>::propagateToSurface(
+Result<BoundTrackParameters>
+detail::BasePropagatorHelper<derived_t>::propagateToSurface(
     const BoundTrackParameters& start, const Surface& target,
     const Options& options) const {
-  using ResultType = Result<typename derived_t::template actor_list_t_result_t<
-      BoundTrackParameters, ActorList<>>>;
   using DerivedOptions = typename derived_t::template Options<>;
+  using DerivedResult = typename derived_t::template ResultType<DerivedOptions>;
 
   DerivedOptions derivedOptions(options);
 
   // dummy initialization
-  ResultType res = ResultType::failure(PropagatorError::Failure);
+  Result<DerivedResult> res =
+      Result<DerivedResult>::failure(PropagatorError::Failure);
 
   // Due to the geometry of the perigee surface the overstepping tolerance
   // is sometimes not met.
@@ -483,3 +467,5 @@ Acts::detail::BasePropagatorHelper<derived_t>::propagateToSurface(
   assert((*res).endParameters);
   return std::move((*res).endParameters.value());
 }
+
+}  // namespace Acts
