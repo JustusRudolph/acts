@@ -70,7 +70,7 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
   ACTS_VERBOSE("Create prototracks for " << particles.size() << " particles");
   for (const auto& [i, particle] : Acts::enumerate(particles)) {
     str_to_print += std::format("\tParticle {} has {} hits.",
-                                particle.particleId().value(),
+                                particle.particleId().particle(),
                                 particle.numberOfHits());
     // find the corresponding hits for this particle
     const auto& measurements =

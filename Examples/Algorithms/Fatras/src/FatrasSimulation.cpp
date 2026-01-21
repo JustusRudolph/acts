@@ -213,6 +213,7 @@ ActsExamples::ProcessCode ActsExamples::FatrasSimulation::execute(
     const AlgorithmContext &ctx) const {
   // read input containers
   const auto &inputParticles = m_inputParticles(ctx);
+  const unsigned nInputParticles = inputParticles.size();
 
   ACTS_DEBUG(inputParticles.size() << " input particles");
 
@@ -284,6 +285,14 @@ ActsExamples::ProcessCode ActsExamples::FatrasSimulation::execute(
     }
 
     particlesSimulated.insert(particleSimulated);
+  }
+  const unsigned nOutputParticles = particlesSimulated.size();
+  std::set<unsigned> interesting_events = {16, 374, 429, 813, 927};
+  if ( (std::find(interesting_events.begin(), interesting_events.end(),
+                  ctx.eventNumber) != interesting_events.end() ) ) {
+    ACTS_INFO("In FATRAS: event " << ctx.eventNumber << " simulated "
+              << nOutputParticles << " particles from "
+              << nInputParticles << " input particles.");
   }
 
   // store ordered output containers

@@ -212,13 +212,20 @@ ProcessCode ParticleSelector::execute(const AlgorithmContext& ctx) const {
   }
   outputParticles.shrink_to_fit();
 
-  ACTS_DEBUG("event " << ctx.eventNumber << " selected "
-                      << outputParticles.size() << " from "
-                      << inputParticles.size() << " particles");
-  ACTS_DEBUG("filtered out because of charge: " << nInvalidCharge);
-  ACTS_DEBUG("filtered out because of hit count: " << nInvalidHitCount);
-  ACTS_DEBUG("filtered out because of measurement count: "
-             << nInvalidMeasurementCount);
+  std::set<unsigned> interesting_events = {16, 374, 429, 813, 927};
+  if ( (std::find(interesting_events.begin(), interesting_events.end(),
+                  ctx.eventNumber) != interesting_events.end() )
+        && m_cfg.rhoMax != std::numeric_limits<double>::infinity() ) {
+    ACTS_INFO("event " << ctx.eventNumber << " selected "
+                        << outputParticles.size() << " from "
+                        << inputParticles.size() << " particles");
+    ACTS_INFO("filtered out because of charge: " << nInvalidCharge);
+    ACTS_INFO("filtered out because of hit count: " << nInvalidHitCount);
+    ACTS_INFO("filtered out because of measurement count: "
+              << nInvalidMeasurementCount);
+    ACTS_INFO("filtered out because of measurement region count: "
+              << nInvalidMeasurementRegionCount);
+  }
 
   m_outputParticles(ctx, std::move(outputParticles));
 

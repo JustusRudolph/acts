@@ -67,7 +67,13 @@ ActsExamples::ProcessCode TrackTruthMatcher::execute(
 
   // For each particle within a track, how many hits did it contribute
   std::vector<ParticleHitCount> particleHitCounts;
-
+  std::set<unsigned> interesting_events = {16, 374, 429, 813, 927};
+  if ( (std::find(interesting_events.begin(), interesting_events.end(),
+                  ctx.eventNumber) != interesting_events.end() ) ) {
+    ACTS_INFO("event " << ctx.eventNumber << " has "
+                        << particles.size() << " particles and "
+                        << tracks.size() << " tracks");
+  }
   for (const auto& track : tracks) {
     // Get the majority truth particle to this track
     identifyContributingParticles(hitParticlesMap, track, particleHitCounts);
@@ -136,11 +142,12 @@ ActsExamples::ProcessCode TrackTruthMatcher::execute(
         ++particleTrackMatch.duplicates;
       }
     } else {  // not matched, i.e. fake track
-      ACTS_DEBUG("Track %u NOT MATCHED to particle %lu with %lu hits in event %lu.\
-                  Out of %lu track hits, %u were right.\n",
-                  track.tipIndex(), majorityParticleId.value(), ctx.eventNumber,
-                  particleTruthHitCount.at(majorityParticleId),
-                  nMajorityHits, track.nMeasurements());
+      ACTS_DEBUG("Track " << track.tipIndex() << " in event " << ctx.eventNumber
+                 << " NOT MATCHED to particle " << majorityParticleId.particle()
+                 << " with " << particleTruthHitCount.at(majorityParticleId) 
+                 << " hits in event " << ctx.eventNumber << ". Out of " 
+                 << track.nMeasurements() << " track hits, " 
+                 << nMajorityHits << " were right.");
       trackParticleMatching[track.index()] = {TrackMatchClassification::Fake,
                                               std::nullopt, particleHitCounts};
 
