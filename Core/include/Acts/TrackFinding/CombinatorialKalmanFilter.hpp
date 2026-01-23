@@ -597,12 +597,11 @@ class CombinatorialKalmanFilter {
 
       auto currentState = currentBranch.outermostTrackState();
 
-      if (currentState.typeFlags().test(TrackStateFlag::OutlierFlag)) {
+      if (currentState.typeFlags().isOutlier()) {
         // We don't need to update the stepper given an outlier state
         ACTS_VERBOSE("Outlier state detected on surface "
                      << surface->geometryId());
-      } else if (currentState.typeFlags().test(
-                     TrackStateFlag::MeasurementFlag)) {
+      } else if (currentState.typeFlags().isMeasurement()) {
         // If there are measurement track states on this surface
         // Update stepping state using filtered parameters of last track
         // state on this surface
@@ -668,16 +667,16 @@ class CombinatorialKalmanFilter {
       // Update and select from the new branches
       for (TrackProxy newBranch : newBranches) {
         auto trackState = newBranch.outermostTrackState();
-        TrackStateType typeFlags = trackState.typeFlags();
+        TrackStateTypeMap typeFlags = trackState.typeFlags();
 
-        if (typeFlags.test(TrackStateFlag::OutlierFlag)) {
+        if (typeFlags.isOutlier()) {
           // No Kalman update for outlier
           // Set the filtered parameter index to be the same with predicted
           // parameter
           trackState.shareFrom(PM::Predicted, PM::Filtered);
           // Increment number of outliers
           newBranch.nOutliers()++;
-        } else if (typeFlags.test(TrackStateFlag::MeasurementFlag)) {
+        } else if (typeFlags.isMeasurement()) {
           // Kalman update
           auto updateRes = extensions.updater(gctx, trackState, *updaterLogger);
           if (!updateRes.ok()) {
@@ -686,8 +685,6 @@ class CombinatorialKalmanFilter {
           }
           ACTS_VERBOSE("Appended measurement track state with tip = "
                        << newBranch.tipIndex());
-          // Set the measurement flag
-          typeFlags.set(TrackStateFlag::MeasurementFlag);
           // Increment number of measurements
           newBranch.nMeasurements()++;
           newBranch.nDoF() += trackState.calibratedSize();
@@ -760,15 +757,17 @@ class CombinatorialKalmanFilter {
       // Set the track state flags
       auto typeFlags = trackStateProxy.typeFlags();
       if (trackStateProxy.referenceSurface().surfaceMaterial() != nullptr) {
-        typeFlags.set(TrackStateFlag::MaterialFlag);
+        typeFlags.setHasMaterial();
       }
-      typeFlags.set(TrackStateFlag::ParameterFlag);
-      if (isSensitive && expectMeasurements && atBoundary) {
-        typeFlags.set(TrackStateFlag::EdgeHoleFlag);
-      } else if (isSensitive && expectMeasurements) {
-        typeFlags.set(TrackStateFlag::HoleFlag);
-      } else if (isSensitive) {
-        typeFlags.set(TrackStateFlag::NoExpectedHitFlag);
+      typeFlags.setHasParameters();
+      if (isSensitive) {
+        if (expectMeasurements && atBoundary) {
+          typeFlags.setIsEdgeHole();
+        } else if (expectMeasurements) {
+          typeFlags.setIsHole();
+        } else {
+          typeFlags.setHasNoExpectedHit();
+        }
       }
 
       // Set the filtered parameter index to be the same with predicted

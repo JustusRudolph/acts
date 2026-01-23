@@ -238,16 +238,14 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
         }
 
         nTrackStates++;
-        nMeasurements += static_cast<std::size_t>(
-            state.typeFlags().test(Acts::MeasurementFlag));
-        nOutliers +=
-            static_cast<std::size_t>(state.typeFlags().test(Acts::OutlierFlag));
-        nHoles +=
-            static_cast<std::size_t>(state.typeFlags().test(Acts::HoleFlag));
-        nEdgeHoles += static_cast<std::size_t>(
-            state.typeFlags().test(Acts::EdgeHoleFlag));
-        nSharedHits += static_cast<std::size_t>(
-            state.typeFlags().test(Acts::SharedHitFlag));
+        nMeasurements +=
+            static_cast<std::size_t>(state.typeFlags().isMeasurement());
+        nOutliers += static_cast<std::size_t>(state.typeFlags().isOutlier());
+        nHoles += static_cast<std::size_t>(state.typeFlags().isHole());
+        nEdgeHoles +=
+            static_cast<std::size_t>(state.typeFlags().isEdgeHole());
+        nSharedHits +=
+            static_cast<std::size_t>(state.typeFlags().isSharedHit());
       }
       m_trackSummaryPlotTool.fill(m_subDetectorSummaryCaches.at(key),
                                   fittedParameters, nTrackStates, nMeasurements,
