@@ -79,10 +79,15 @@ RootTrackFinderPerformanceWriter::RootTrackFinderPerformanceWriter(
     m_matchingTree->Branch("particle_id_generation", &m_treeParticleGeneration);
     m_matchingTree->Branch("particle_id_sub_particle",
                            &m_treeParticleSubParticle);
+    m_matchingTree->Branch("pdg", &m_pdg);
     m_matchingTree->Branch("matched", &m_treeIsMatched);
     m_matchingTree->Branch("matchedTrackIdxs", &m_matchedTrackIdxs);
     m_matchingTree->Branch("eta", &m_eta);
     m_matchingTree->Branch("phi", &m_phi);
+    m_matchingTree->Branch("pT_initial", &m_pT_initial);
+    m_matchingTree->Branch("pT_final", &m_pT_final);
+    m_matchingTree->Branch("p_initial", &m_p_initial);
+    m_matchingTree->Branch("p_final", &m_p_final);
     m_matchingTree->Branch("nHits", &m_nHits);
     m_matchingTree->Branch("isSecondary", &m_isSecondary);
   }
@@ -121,6 +126,8 @@ ProcessCode RootTrackFinderPerformanceWriter::finalize() {
 
   float eff_particle =
       static_cast<float>(m_nTotalMatchedParticles) / m_nTotalParticles;
+  float eff_primary_particle =
+      static_cast<float>(m_nTotalMatchedPrimaryTracks) / m_nTotalPrimaryParticles;
   float fakeRatio_particle =
       static_cast<float>(m_nTotalFakeParticles) / m_nTotalParticles;
   float duplicationRatio_particle =
@@ -137,8 +144,8 @@ ProcessCode RootTrackFinderPerformanceWriter::finalize() {
       "Fake ratio with tracks (nFakeTracks/nAllTracks) = " << fakeRatio_tracks);
   ACTS_INFO("Duplicate ratio with tracks (nDuplicateTracks/nAllTracks) = "
             << duplicationRatio_tracks);
-  ACTS_INFO("Efficiency with particles (nMatchedParticles/nTrueParticles) = "
-            << eff_particle);
+  ACTS_INFO("Efficiency with <primary> particles (nMatchedParticles/nTrueParticles) = <"
+            << eff_primary_particle << "> " << eff_particle);
   ACTS_INFO("Fake ratio with particles (nFakeParticles/nTrueParticles) = "
             << fakeRatio_particle);
   ACTS_INFO(
@@ -320,6 +327,7 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
 
       // Add number for total matched tracks here
       m_nTotalMatchedTracks += nMatchedTracks;
+      m_nTotalMatchedPrimaryTracks += nMatchedTracks * !( particle.isSecondary() );
       m_nTotalMatchedParticles += imatched->second.track.has_value() ? 1 : 0;
 
       // Check if the particle has more than one matched track for the duplicate
@@ -361,6 +369,7 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
                         nMatchedTracks, nFakeTracks);
 
     m_nTotalParticles += 1;
+    m_nTotalPrimaryParticles += !particle.isSecondary();
   }
 
   // Write additional stuff to TTree
@@ -368,15 +377,24 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
     m_treeEventNr = ctx.eventNumber;  // same for all particles in this event
     for (const auto& particle : particles) {
       auto particleId = particle.particleId();
+      const auto measurements =
+        particleMeasurementsMap.equal_range(particleId);
+      std::size_t nParticleHits =
+        std::distance(measurements.first, measurements.second);
 
       m_treeParticleVertexPrimary.push_back(particleId.vertexPrimary());
       m_treeParticleVertexSecondary.push_back(particleId.vertexSecondary());
       m_treeParticleParticle.push_back(particleId.particle());
       m_treeParticleGeneration.push_back(particleId.generation());
       m_treeParticleSubParticle.push_back(particleId.subParticle());
+      m_pdg.push_back(particle.pdg());
       m_eta.push_back(eta(particle.direction()));
       m_phi.push_back(particle.phi());
-      m_nHits.push_back(particle.numberOfHits());
+      m_pT_initial.push_back(particle.initialState().transverseMomentum());
+      m_pT_final.push_back(particle.finalState().transverseMomentum());
+      m_p_initial.push_back(particle.initialState().absoluteMomentum());
+      m_p_final.push_back(particle.finalState().absoluteMomentum());
+      m_nHits.push_back(nParticleHits);
       m_isSecondary.push_back(particle.isSecondary());
 
       m_treeIsMatched.push_back(false);
@@ -394,6 +412,13 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
           m_matchedTrackIdxs.back().push_back(trackWithWeight.first);
         }
       }
+      ACTS_INFO("Particle " << particleId.hash()
+             << " (" << particle.pdg() << ")"
+             << " in event " << ctx.eventNumber
+             << " with pT = " << particle.transverseMomentum()
+             << ", eta = " << Acts::VectorHelpers::eta(particle.direction())
+             << " was matched: " << m_treeIsMatched.back()
+      );
 
     }
     m_matchingTree->Fill();
@@ -405,8 +430,13 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
     m_treeParticleSubParticle.clear();
     m_treeIsMatched.clear();
     m_matchedTrackIdxs.clear();
+    m_pdg.clear();
     m_eta.clear();
     m_phi.clear();
+    m_pT_initial.clear();
+    m_pT_final.clear();
+    m_p_initial.clear();
+    m_p_final.clear();
     m_nHits.clear();
     m_isSecondary.clear();
   }

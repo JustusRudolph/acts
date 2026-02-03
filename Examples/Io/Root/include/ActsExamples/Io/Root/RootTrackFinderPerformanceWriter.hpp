@@ -122,19 +122,26 @@ class RootTrackFinderPerformanceWriter final
   std::vector<std::uint32_t> m_treeParticleParticle{};
   std::vector<std::uint32_t> m_treeParticleGeneration{};
   std::vector<std::uint32_t> m_treeParticleSubParticle{};
+  std::vector<int> m_pdg{};
   std::vector<bool> m_treeIsMatched{};
   std::vector<std::vector<std::size_t>> m_matchedTrackIdxs;
   std::vector<float> m_eta{};
   std::vector<float> m_phi{};
+  std::vector<float> m_pT_initial{};
+  std::vector<float> m_pT_final{};
+  std::vector<float> m_p_initial{};
+  std::vector<float> m_p_final{};
   std::vector<std::size_t> m_nHits{};
   std::vector<bool> m_isSecondary{};
 
   // Adding numbers for efficiency, fake, duplicate calculations
   std::size_t m_nTotalTracks = 0;
   std::size_t m_nTotalMatchedTracks = 0;
+  std::size_t m_nTotalMatchedPrimaryTracks = 0;
   std::size_t m_nTotalFakeTracks = 0;
   std::size_t m_nTotalDuplicateTracks = 0;
   std::size_t m_nTotalParticles = 0;
+  std::size_t m_nTotalPrimaryParticles = 0;
   std::size_t m_nTotalMatchedParticles = 0;
   std::size_t m_nTotalDuplicateParticles = 0;
   std::size_t m_nTotalFakeParticles = 0;
