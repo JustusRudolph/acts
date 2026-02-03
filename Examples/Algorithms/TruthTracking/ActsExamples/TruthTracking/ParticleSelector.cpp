@@ -204,13 +204,23 @@ ProcessCode ParticleSelector::execute(const AlgorithmContext& ctx) const {
 
   // copy selected particles
   for (const auto& inputParticle : inputParticles) {
+    ACTS_DEBUG("Evaluating particle " << inputParticle.particleId().hash()
+                             << " with pT = " << inputParticle.transverseMomentum()
+                             << ", eta = "
+                             << Acts::VectorHelpers::eta(inputParticle.direction())
+                             << ", hits = " << inputParticle.numberOfHits()
+                             << ", measurements = "
+                             << inputMeasurementParticlesMap.count(inputParticle.particleId()));
     if (!isValidParticle(inputParticle)) {
+      ACTS_DEBUG("\tREJECTED!");
       continue;
     }
-
+    ACTS_DEBUG("\tACCEPTED!");
     outputParticles.insert(outputParticles.end(), inputParticle);
   }
   outputParticles.shrink_to_fit();
+  ACTS_INFO("Selected " << outputParticles.size() << " particles from "
+                           << inputParticles.size() << " input particles.");
 
   std::set<unsigned> interesting_events = {16, 374, 429, 813, 927};
   if ( (std::find(interesting_events.begin(), interesting_events.end(),

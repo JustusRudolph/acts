@@ -72,9 +72,9 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
     // find the corresponding hits for this particle
     const auto& measurements =
         makeRange(particleMeasurementsMap.equal_range(particle.particleId()));
-    str_to_print += std::format("\tEvent {} Particle {} with pT = {}, eta = {} has {} hits & {} measuremtnents.\n",
+    str_to_print += std::format("\tEvent {} Particle {} with pT = {:.2f}, eta = {:.2f} has {} hits & {} measurements.\n",
                                 ctx.eventNumber,
-                                particle.particleId().particle(),
+                                particle.particleId().hash(),
                                 particle.transverseMomentum(),
                                 Acts::VectorHelpers::eta(particle.direction()),
                                 particle.numberOfHits(),
@@ -125,7 +125,7 @@ ProcessCode TruthTrackFinder::execute(const AlgorithmContext& ctx) const {
     // add proto track to the output collection
     tracks.emplace_back(std::move(sortedTrack));
   }
-  printf("%s\n", str_to_print.c_str());
+  ACTS_INFO(str_to_print);
   // if (particles.size() != tracks.size()) {
   //   printf("TRUTHTRACKFINDER: MISMATCH in event %lu: Created %zu prototracks for %zu particles.\n",
   //     ctx.eventNumber, tracks.size(), particles.size());

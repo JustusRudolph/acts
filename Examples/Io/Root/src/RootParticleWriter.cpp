@@ -158,6 +158,23 @@ ActsExamples::ProcessCode ActsExamples::RootParticleWriter::writeT(
     m_pathInL0.push_back(
         Acts::clampValue<float>(particle.pathInL0() / Acts::UnitConstants::mm));
     m_numberOfHits.push_back(particle.numberOfHits());
+    ACTS_DEBUG("Writing particle " << particle.particleId().hash()
+            << " which was just generated with "
+            << "pT = " << particle.transverseMomentum()
+            << ", eta = " << Acts::VectorHelpers::eta(particle.direction()) );
+    if (particle.numberOfHits() || particle.transverseMomentum() > 0.1) { // 100 MeV
+        float vertex_r = std::sqrt(
+            particle.fourPosition().x() * particle.fourPosition().x() +
+            particle.fourPosition().y() * particle.fourPosition().y());
+        ACTS_INFO("Particle " << particle.particleId().hash() <<
+                  " (" << particle.pdg() << ")" <<
+                  " in event " << ctx.eventNumber <<
+                  " generated at (r,z) = (" << vertex_r / Acts::UnitConstants::mm <<
+                  ", " << particle.fourPosition().z() / Acts::UnitConstants::mm << ")mm" <<
+                  " with pT = " << particle.transverseMomentum() <<
+                  ", eta = " << Acts::VectorHelpers::eta(particle.direction()) <<
+                  " has " << particle.numberOfHits() << " hits.");
+    }
     m_outcome.push_back(static_cast<std::uint32_t>(particle.outcome()));
 
     // momentum
