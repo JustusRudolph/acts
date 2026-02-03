@@ -13,6 +13,7 @@
 #include "Acts/Utilities/Zip.hpp"
 
 #include <ranges>
+#include <iostream>
 
 #include <Eigen/Dense>
 #include <boost/mp11.hpp>
@@ -95,7 +96,7 @@ class Impl final : public TripletSeedFinder {
   void createPixelTripletTopCandidates(
       const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet, TopDoublets& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const {
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo=36) const {
     const float rM = spM.zr()[1];
     const float varianceZM = spM.varianceZ();
     const float varianceRM = spM.varianceR();
@@ -113,6 +114,8 @@ class Impl final : public TripletSeedFinder {
     // 1+(cot^2(theta)) = 1/sin^2(theta)
     const float iSinTheta2 = 1 + cotThetaB * cotThetaB;
     const float sigmaSquaredPtDependent = iSinTheta2 * m_cfg.sigmapT2perRadius;
+    // std::cout << "TripletSeedFinder: Using sigmaSquaredPtDependent = "
+    //           << sigmaSquaredPtDependent << std::endl;
     // calculate max scattering for min momentum at the seed's theta angle
     // scaling scatteringAngle^2 by sin^2(theta) to convert pT^2 to p^2
     // accurate would be taking 1/atan(thetaBottom)-1/atan(thetaTop) <
@@ -139,6 +142,20 @@ class Impl final : public TripletSeedFinder {
       const float error2 = topDoublet.er() + erB +
                            2 * (cotThetaAvg2 * varianceRM + varianceZM) *
                                iDeltaRB * topDoublet.iDeltaR();
+      // std::cout << "TripletSeedFinder PIXEL: In event " << evNo
+      //           << ", for Top SP " << spT
+      //           << ", error2 components: topDoublet.er()=" << topDoublet.er()
+      //           << ", erB=" << erB
+      //           << ", cotThetaB=" << cotThetaB
+      //           << ", cotThetaT=" << cotThetaT
+      //           << ", cotThetaAvg2=" << cotThetaAvg2
+      //           << ", varianceRM=" << varianceRM
+      //           << ", varianceZM=" << varianceZM
+      //           << ", iDeltaRB=" << iDeltaRB
+      //           << ", topDoublet.iDeltaR()=" << topDoublet.iDeltaR()
+      //           << ", theta_term=" << 2 * cotThetaAvg2 * varianceRM * iDeltaRB * topDoublet.iDeltaR()
+      //           << ", z_term=" << 2 * varianceZM * iDeltaRB * topDoublet.iDeltaR()
+      //           << ", TOTAL error2=" << error2 << std::endl;
 
       const float deltaCotTheta = cotThetaB - cotThetaT;
       const float deltaCotTheta2 = deltaCotTheta * deltaCotTheta;
@@ -154,6 +171,12 @@ class Impl final : public TripletSeedFinder {
       // allows just adding the two errors if they are uncorrelated (which is
       // fair for scattering and measurement uncertainties)
       if (deltaCotTheta2 > error2 + scatteringInRegion2) {
+        // if (evNo == 36) {
+        //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+        //             << " Top SP " << spT << " REJECTED: initial scattering check (deltaCotTheta2="
+        //             << deltaCotTheta2 << ", error2+scatteringInRegion2=" << error2 + scatteringInRegion2
+        //             << ")" << std::endl;
+        // }
         if constexpr (sortedByCotTheta) {
           // skip top SPs based on cotTheta sorting when producing triplets
           // break if cotTheta from bottom SP < cotTheta from top SP because
@@ -169,6 +192,10 @@ class Impl final : public TripletSeedFinder {
       const float dU = topDoublet.u() - Ub;
       // protects against division by 0
       if (dU == 0) {
+        // if (evNo == 36) {
+        //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+        //             << " Top SP " << spT << " REJECTED: dU == 0" << std::endl;
+        // }
         continue;
       }
       // A and B are evaluated as a function of the circumference parameters
@@ -177,10 +204,19 @@ class Impl final : public TripletSeedFinder {
       const float S2 = 1 + A * A;
       const float B = Vb - A * Ub;
       const float B2 = B * B;
+      // std::cout << "TripletSeedFinder: For Top SP " << spT
+      //           << ", computed A=" << A << ", B=" << B
+      //           << ", S2=" << S2 << ", B2=" << B2 << std::endl;
 
       // sqrt(S2)/B = 2 * helixradius
       // calculated radius must not be smaller than minimum radius
       if (S2 < B2 * m_cfg.minHelixDiameter2) {
+        // if (evNo == 36) {
+        //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+        //             << " Top SP " << spT << " REJECTED: minimum radius cut (S2="
+        //             << S2 << ", B2*minHelixDiameter2=" << B2 * m_cfg.minHelixDiameter2
+        //             << ")" << std::endl;
+        // }
         continue;
       }
 
@@ -191,8 +227,20 @@ class Impl final : public TripletSeedFinder {
       // convert p(T) to p scaling by sin^2(theta) AND scale by 1/sin^4(theta)
       // from rad to deltaCotTheta
       const float p2scatterSigma = iHelixDiameter2 * sigmaSquaredPtDependent;
+      const float deltaCotTheta2Cut = std::max(
+          m_cfg.minimumDeltaCotTheta2Cut, error2 + p2scatterSigma);
       // if deltaTheta larger than allowed scattering for calculated pT, skip
-      if (deltaCotTheta2 > error2 + p2scatterSigma) {
+      if (deltaCotTheta2 > deltaCotTheta2Cut) {
+        // if (evNo == 36) {
+        //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+        //             << " Top SP " << spT
+        //             << " REJECTED: refined scattering check (deltaCotTheta2="
+        //             << deltaCotTheta2 << ", error2=" << error2
+        //             << ", p2scatterSigma=" << p2scatterSigma << "), where "
+        //             << "iHelixDiameter2=" << iHelixDiameter2
+        //             << ", sigmaSquaredPtDependent=" << sigmaSquaredPtDependent
+        //             << std::endl;
+        // }
         if constexpr (sortedByCotTheta) {
           if (cotThetaB < cotThetaT) {
             break;
@@ -201,17 +249,37 @@ class Impl final : public TripletSeedFinder {
         }
         continue;
       }
+      // if (evNo == 36) {
+      //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+      //             << " Top SP " << spT
+      //             << " Continues: refined scattering check (deltaCotTheta2="
+      //             << deltaCotTheta2 << ", error2=" << error2
+      //             << ", p2scatterSigma=" << p2scatterSigma << "), where "
+      //             << "iHelixDiameter2=" << iHelixDiameter2
+      //             << ", sigmaSquaredPtDependent=" << sigmaSquaredPtDependent
+      //             << std::endl;
+      // }
 
       // A and B allow calculation of impact params in U/V plane with linear
       // function
       // (in contrast to having to solve a quadratic function in x/y plane)
       const float im = std::abs((A - B * rM) * rM);
       if (im > m_cfg.impactMax) {
+        // if (evNo == 36) {
+        //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+        //             << " Top SP " << spT << " REJECTED: impact parameter (im="
+        //             << im << ", impactMax=" << m_cfg.impactMax << ")" << std::endl;
+        // }
         continue;
       }
 
       // inverse diameter is signed depending on if the curvature is
       // positive/negative in phi
+      // if (evNo == 36) {
+      //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+      //             << " Top SP " << spT << " ACCEPTED as triplet candidate (im="
+      //             << im << ", invDiameter=" << B / std::sqrt(S2) << ")" << std::endl;
+      // }
       tripletTopCandidates.emplace_back(spT, B / std::sqrt(S2), im);
     }  // loop on tops
 
@@ -226,7 +294,7 @@ class Impl final : public TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       const TopDoublets& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const {
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo=36) const {
     const float rM = spM.zr()[1];
     const float cosPhiM = spM.xy()[0] / rM;
     const float sinPhiM = spM.xy()[1] / rM;
@@ -415,6 +483,11 @@ class Impl final : public TripletSeedFinder {
       // inverse diameter is signed depending on if the curvature is
       // positive/negative in phi
       tripletTopCandidates.emplace_back(spT.index(), B / std::sqrt(S2), im);
+      // if (evNo == 36) {
+      //   std::cout << "TRIPLET SEED FINDER: Event " << evNo
+      //             << " Top SP index" << spT.index() << " ACCEPTED as triplet candidate (im="
+      //             << im << ", invDiameter=" << B / std::sqrt(S2) << ")" << std::endl;
+      // }
     }  // loop on tops
   }
 
@@ -422,13 +495,13 @@ class Impl final : public TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       DoubletsForMiddleSp::Range& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const override {
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo) const override {
     if constexpr (useStripInfo) {
       createStripTripletTopCandidates(spacePoints, spM, bottomDoublet,
-                                      topDoublets, tripletTopCandidates);
+                                      topDoublets, tripletTopCandidates, evNo);
     } else {
       createPixelTripletTopCandidates(spM, bottomDoublet, topDoublets,
-                                      tripletTopCandidates);
+                                      tripletTopCandidates, evNo);
     }
   }
 
@@ -436,13 +509,13 @@ class Impl final : public TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       DoubletsForMiddleSp::Subset& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const override {
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo) const override {
     if constexpr (useStripInfo) {
       createStripTripletTopCandidates(spacePoints, spM, bottomDoublet,
-                                      topDoublets, tripletTopCandidates);
+                                      topDoublets, tripletTopCandidates, evNo);
     } else {
       createPixelTripletTopCandidates(spM, bottomDoublet, topDoublets,
-                                      tripletTopCandidates);
+                                      tripletTopCandidates, evNo);
     }
   }
 
@@ -450,13 +523,13 @@ class Impl final : public TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       DoubletsForMiddleSp::Subset2& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const override {
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo) const override {
     if constexpr (useStripInfo) {
       createStripTripletTopCandidates(spacePoints, spM, bottomDoublet,
-                                      topDoublets, tripletTopCandidates);
+                                      topDoublets, tripletTopCandidates, evNo);
     } else {
       createPixelTripletTopCandidates(spM, bottomDoublet, topDoublets,
-                                      tripletTopCandidates);
+                                      tripletTopCandidates, evNo);
     }
   }
 
@@ -481,6 +554,8 @@ TripletSeedFinder::DerivedConfig::DerivedConfig(const Config& config,
     //                          = 2 * log(sqrt(x/X0) * (q/beta))
     highland =
         static_cast<float>(13.6_MeV * t * (1.0 + 0.038 * 2 * std::log(t)));
+    // std::cout << "TripletSeedFinder: Using highland = "
+    //           << highland << std::endl;
   }
 
   const float maxScatteringAngle = highland / minPt;
@@ -488,9 +563,15 @@ TripletSeedFinder::DerivedConfig::DerivedConfig(const Config& config,
 
   // bFieldInZ is in (pT/radius) natively, no need for conversion
   pTPerHelixRadius = bFieldInZ;
+  // std::cout << "TripletSeedFinder: Using pTPerHelixRadius = "
+  //           << pTPerHelixRadius << std::endl;
   minHelixDiameter2 = square(minPt * 2 / pTPerHelixRadius) * helixCutTolerance;
   const float pT2perRadius = square(highland / pTPerHelixRadius);
+  // std::cout << "TripletSeedFinder: Using pT2perRadius = "
+            // << pT2perRadius << std::endl;
   sigmapT2perRadius = pT2perRadius * square(2 * sigmaScattering);
+  // std::cout << "TripletSeedFinder: Using sigmapT2perRadius = "
+            // << sigmapT2perRadius << std::endl;
   multipleScattering2 = maxScatteringAngle2 * square(sigmaScattering);
 }
 

@@ -12,6 +12,7 @@
 #include "Acts/Utilities/MathHelpers.hpp"
 
 #include <stdexcept>
+#include <iostream>
 
 #include <boost/mp11.hpp>
 #include <boost/mp11/algorithm.hpp>
@@ -42,7 +43,8 @@ class Impl final : public DoubletSeedFinder {
   void createDoubletsImpl(const ConstSpacePointProxy2& middleSp,
                           const MiddleSpInfo& middleSpInfo,
                           CandidateSps& candidateSps,
-                          DoubletsForMiddleSp& compatibleDoublets) const {
+                          DoubletsForMiddleSp& compatibleDoublets,
+                          unsigned evNo) const {
     const float impactMax =
         isBottomCandidate ? -m_cfg.impactMax : m_cfg.impactMax;
 
@@ -124,6 +126,12 @@ class Impl final : public DoubletSeedFinder {
 
       if constexpr (!sortedByR) {
         if (outsideRangeCheck(deltaR, m_cfg.deltaRMin, m_cfg.deltaRMax)) {
+          // if (evNo == 36) {
+          //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+          //             << " Doublet rejected: deltaR out of range (deltaR="
+          //             << deltaR << ", min=" << m_cfg.deltaRMin << ", max="
+          //             << m_cfg.deltaRMax << ")" << std::endl;
+          // }
           continue;
         }
       }
@@ -136,6 +144,12 @@ class Impl final : public DoubletSeedFinder {
       }
 
       if (outsideRangeCheck(deltaZ, m_cfg.deltaZMin, m_cfg.deltaZMax)) {
+        // if (evNo == 36) {
+        //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+        //             << " Doublet rejected: deltaZ out of range (deltaZ="
+        //             << deltaZ << ", min=" << m_cfg.deltaZMin << ", max="
+        //             << m_cfg.deltaZMax << ")" << std::endl;
+        // }
         continue;
       }
 
@@ -148,6 +162,13 @@ class Impl final : public DoubletSeedFinder {
       if (outsideRangeCheck(zOriginTimesDeltaR,
                             m_cfg.collisionRegionMin * deltaR,
                             m_cfg.collisionRegionMax * deltaR)) {
+        // if (evNo == 36) {
+        //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+        //             << " Doublet rejected: zOrigin outside collision region (zOriginTimesDeltaR="
+        //             << zOriginTimesDeltaR << ", range=["
+        //             << m_cfg.collisionRegionMin * deltaR << ", "
+        //             << m_cfg.collisionRegionMax * deltaR << "])" << std::endl;
+        // }
         continue;
       }
 
@@ -161,6 +182,12 @@ class Impl final : public DoubletSeedFinder {
         // cotThetaMax by deltaR to avoid division
         if (outsideRangeCheck(deltaZ, -m_cfg.cotThetaMax * deltaR,
                               m_cfg.cotThetaMax * deltaR)) {
+          // if (evNo == 36) {
+          //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+          //             << " Doublet rejected: cotTheta out of range [no IP cut] (deltaZ="
+          //             << deltaZ << ", range=[" << -m_cfg.cotThetaMax * deltaR
+          //             << ", " << m_cfg.cotThetaMax * deltaR << "])" << std::endl;
+          // }
           continue;
         }
 
@@ -188,6 +215,17 @@ class Impl final : public DoubletSeedFinder {
         // fill output vectors
         compatibleDoublets.emplace_back(indexO, cotTheta, iDeltaR, er, uT, vT,
                                         xNewFrame, yNewFrame);
+        // if (evNo == 36) {
+        //   if (isBottomCandidate) {
+        //     std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+        //               << " Bottom Doublet ACCEPTED: SP index " << indexO
+        //               << " with middle SP index " << middleSp.index() << std::endl;
+        //   } else {
+        //     std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+        //               << " Top Doublet ACCEPTED: SP index " << indexO
+        //               << " with middle SP index " << middleSp.index() << std::endl;
+        //   }
+        // }
         continue;
       }
 
@@ -229,6 +267,12 @@ class Impl final : public DoubletSeedFinder {
         // circle) is related to aCoef and bCoef by d^2 = bCoef^2 / (1 +
         // aCoef^2) = 1 / (radius^2) and we can apply the cut on the curvature
         if ((bCoef * bCoef) * m_cfg.minHelixDiameter2 > 1 + aCoef * aCoef) {
+          // if (evNo == 36) {
+          //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+          //             << " Doublet rejected: curvature/pT cut (bCoef²*minHelixDiam²="
+          //             << (bCoef * bCoef) * m_cfg.minHelixDiameter2 << " > 1+aCoef²="
+          //             << 1 + aCoef * aCoef << ")" << std::endl;
+          // }
           continue;
         }
       }
@@ -238,6 +282,12 @@ class Impl final : public DoubletSeedFinder {
       // cotThetaMax by deltaR to avoid division
       if (outsideRangeCheck(deltaZ, -m_cfg.cotThetaMax * deltaR,
                             m_cfg.cotThetaMax * deltaR)) {
+        // if (evNo == 36) {
+        //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+        //             << " Doublet rejected: cotTheta out of range [with IP cut] (deltaZ="
+        //             << deltaZ << ", range=[" << -m_cfg.cotThetaMax * deltaR << ", "
+        //             << m_cfg.cotThetaMax * deltaR << "])" << std::endl;
+        // }
         continue;
       }
 
@@ -248,12 +298,22 @@ class Impl final : public DoubletSeedFinder {
       if constexpr (experimentCuts) {
         if (!m_cfg.experimentCuts(middleSp, container[indexO], cotTheta,
                                   isBottomCandidate)) {
+          // if (evNo == 36) {
+          //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+          //             << " Doublet rejected: experiment-specific cuts" << std::endl;
+          // }
           continue;
         }
       }
 
       const float er =
           calculateError(varianceZO, varianceRO, iDeltaR2, cotTheta);
+
+      // if (evNo == 36) {
+      //   std::cout << "DOUBLET SEED FINDER: " << "Event " << evNo
+      //             << " Doublet ACCEPTED: SP index " << indexO
+      //             << " with middle SP index " << middleSp.index() << std::endl;
+      // }
 
       // fill output vectors
       compatibleDoublets.emplace_back(indexO, cotTheta, iDeltaR, er, uT, vT,
@@ -264,17 +324,17 @@ class Impl final : public DoubletSeedFinder {
   void createDoublets(const ConstSpacePointProxy2& middleSp,
                       const MiddleSpInfo& middleSpInfo,
                       SpacePointContainer2::ConstSubset& candidateSps,
-                      DoubletsForMiddleSp& compatibleDoublets) const override {
+                      DoubletsForMiddleSp& compatibleDoublets, unsigned evNo) const override {
     createDoubletsImpl(middleSp, middleSpInfo, candidateSps,
-                       compatibleDoublets);
+                       compatibleDoublets, evNo);
   }
 
   void createDoublets(const ConstSpacePointProxy2& middleSp,
                       const MiddleSpInfo& middleSpInfo,
                       SpacePointContainer2::ConstRange& candidateSps,
-                      DoubletsForMiddleSp& compatibleDoublets) const override {
+                      DoubletsForMiddleSp& compatibleDoublets, unsigned evNo) const override {
     createDoubletsImpl(middleSp, middleSpInfo, candidateSps,
-                       compatibleDoublets);
+                       compatibleDoublets, evNo);
   }
 
  private:

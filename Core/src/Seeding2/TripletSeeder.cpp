@@ -25,7 +25,14 @@ void createAndFilterTriplets(TripletSeeder::Cache& cache,
                              const SpacePointContainer2& spacePoints,
                              DoubletCollections bottomDoublets,
                              const ConstSpacePointProxy2& spM,
-                             DoubletCollections topDoublets) {
+                             DoubletCollections topDoublets,
+                             unsigned evNo = 36) {
+  // if (evNo == 36) {
+  //   std::cout << "TRIPLET SEEDER: Event " << evNo
+  //             << " createAndFilterTriplets called with "
+  //             << bottomDoublets.size() << " bottom doublets and "
+  //             << topDoublets.size() << " top doublets" << std::endl;
+  // }
   for (auto bottomDoublet : bottomDoublets) {
     if (topDoublets.empty()) {
       break;
@@ -34,10 +41,20 @@ void createAndFilterTriplets(TripletSeeder::Cache& cache,
     cache.tripletTopCandidates.clear();
     tripletFinder.createTripletTopCandidates(spacePoints, spM, bottomDoublet,
                                              topDoublets,
-                                             cache.tripletTopCandidates);
+                                             cache.tripletTopCandidates, evNo);
+      // if (evNo == 36) {
+      //   std::cout << "TRIPLET SEEDER: Event " << evNo
+      //             << " Created " << cache.tripletTopCandidates.size()
+      //             << " triplet top candidates" << std::endl;
+      // }
 
     filter.filterTripletTopCandidates(spacePoints, spM, bottomDoublet,
                                       cache.tripletTopCandidates);
+    // if (evNo == 36) {
+    //   std::cout << "TRIPLET SEEDER: Event " << evNo << " After filtering: "
+    //             << cache.tripletTopCandidates.size()
+    //             << " triplet top candidates remain" << std::endl;
+    // }
   }
 }
 
@@ -49,39 +66,84 @@ void createSeedsFromGroupsImpl(
     const SpacePointContainer2& spacePoints,
     SpacePointCollections& bottomSpGroups,
     const ConstSpacePointProxy2& middleSp, SpacePointCollections& topSpGroups,
-    SeedContainer2& outputSeeds) {
+    SeedContainer2& outputSeeds, unsigned evNo=36) {
   MiddleSpInfo middleSpInfo = DoubletSeedFinder::computeMiddleSpInfo(middleSp);
 
   // create middle-top doublets
   cache.topDoublets.clear();
   for (auto& topSpGroup : topSpGroups) {
+    // if (evNo == 36) {
+    //   ACTS_INFO("TRIPLET SEEDER: Event " << evNo
+    //               << " creating top doublets for middle candidate indexed "
+    //               << middleSp.index() << " with coordinates (" << middleSp.xy()[0]
+    //               << ", " << middleSp.xy()[1] << ", " << middleSp.zr()[0]
+    //               << ") and radius " << middleSp.zr()[1]);
+    // }
     topFinder.createDoublets(middleSp, middleSpInfo, topSpGroup,
-                             cache.topDoublets);
+                             cache.topDoublets, evNo);
   }
 
   // no top SP found -> cannot form any triplet
+  // if (evNo == 36) {
+  //   ACTS_INFO("TRIPLET SEEDER: Event " << evNo << " Created "
+  //               << cache.topDoublets.size() << " top doublets for middle SP "
+  //               << middleSp.index());
+  // }
   if (cache.topDoublets.empty()) {
+    // if (evNo == 36) {
+    //   ACTS_INFO("Event " << evNo
+    //               << " No compatible Tops for middle candidate indexed "
+    //               << middleSp.index() << ", returning");
+    // }
     ACTS_VERBOSE("No compatible Tops, returning");
     return;
   }
 
   if (!filter.sufficientTopDoublets(spacePoints, middleSp, cache.topDoublets)) {
+    // if (evNo == 36) {
+    //   ACTS_INFO("TRIPLET SEEDER: Event " << evNo
+    //               << " Insufficient top doublets for middle SP "
+    //               << middleSp.index());
+    // }
     return;
   }
 
   // create middle-bottom doublets
   cache.bottomDoublets.clear();
   for (auto& bottomSpGroup : bottomSpGroups) {
+    // if (evNo == 36) {
+    //   ACTS_INFO("TRIPLET SEEDER: Event " << evNo
+    //               << " creating bottom doublets for middle candidate indexed "
+    //               << middleSp.index() << " with coordinates (" << middleSp.xy()[0]
+    //               << ", " << middleSp.xy()[1] << ", " << middleSp.zr()[0]
+    //               << ") and radius " << middleSp.zr()[1]);
+    // }
     bottomFinder.createDoublets(middleSp, middleSpInfo, bottomSpGroup,
-                                cache.bottomDoublets);
+                                cache.bottomDoublets, evNo);
   }
 
   // no bottom SP found -> cannot form any triplet
+  // if (evNo == 36) {
+  //   ACTS_INFO("TRIPLET SEEDER: Event " << evNo << " Created "
+  //               << cache.bottomDoublets.size()
+  //               << " bottom doublets for middle SP " << middleSp.index());
+  // }
   if (cache.bottomDoublets.empty()) {
+    // if (evNo == 36) {
+    //   ACTS_INFO("Event " << evNo
+    //               << " No compatible Bottoms for middle candidate indexed "
+    //               << middleSp.index() << ", returning");
+    // }
     ACTS_VERBOSE("No compatible Bottoms, returning");
     return;
   }
 
+  // if (evNo == 36) {
+  //   ACTS_INFO("TRIPLET SEEDER: Event " << evNo << " Combining "
+  //               << cache.bottomDoublets.size() << " bottom doublets with "
+  //               << cache.topDoublets.size() << " top doublets for middle SP "
+  //               << middleSp.index());
+  // }
   ACTS_VERBOSE("Candidates: " << cache.bottomDoublets.size() << " bottoms and "
                               << cache.topDoublets.size()
                               << " tops for middle candidate indexed "
@@ -97,14 +159,21 @@ void createSeedsFromGroupsImpl(
     createAndFilterTriplets(cache, tripletFinder, filter, spacePoints,
                             cache.bottomDoublets.subset(cache.sortedBottoms),
                             middleSp,
-                            cache.topDoublets.subset(cache.sortedTops));
+                            cache.topDoublets.subset(cache.sortedTops), evNo);
   } else {
     createAndFilterTriplets(cache, tripletFinder, filter, spacePoints,
                             cache.bottomDoublets.range(), middleSp,
-                            cache.topDoublets.range());
+                            cache.topDoublets.range(), evNo);
   }
 
+  // std::size_t seedsBefore = outputSeeds.size();
   filter.filterTripletsMiddleFixed(spacePoints, outputSeeds);
+  // if (evNo == 36) {
+  //   std::cout << "TRIPLET SEEDER: Event " << evNo
+  //             << " After filterTripletsMiddleFixed: added "
+  //             << (outputSeeds.size() - seedsBefore) << " seeds (total now: "
+  //             << outputSeeds.size() << ")" << std::endl;
+  // }
 }
 
 }  // namespace
@@ -123,7 +192,7 @@ void TripletSeeder::createSeedsFromGroup(
     SpacePointContainer2::ConstSubset& bottomSps,
     const ConstSpacePointProxy2& middleSp,
     SpacePointContainer2::ConstSubset& topSps,
-    SeedContainer2& outputSeeds) const {
+    SeedContainer2& outputSeeds, unsigned evNo) const {
   assert((bottomFinder.config().spacePointsSortedByRadius ==
           topFinder.config().spacePointsSortedByRadius) &&
          "Inconsistent space point sorting");
@@ -133,7 +202,7 @@ void TripletSeeder::createSeedsFromGroup(
 
   createSeedsFromGroupsImpl(*m_logger, cache, bottomFinder, topFinder,
                             tripletFinder, filter, spacePoints, bottomSpGroups,
-                            middleSp, topSpGroups, outputSeeds);
+                            middleSp, topSpGroups, outputSeeds, evNo);
 }
 
 void TripletSeeder::createSeedsFromGroups(
@@ -144,7 +213,7 @@ void TripletSeeder::createSeedsFromGroups(
     const SpacePointContainer2::ConstRange& middleSpGroup,
     const std::span<SpacePointContainer2::ConstRange>& topSpGroups,
     const std::pair<float, float>& radiusRangeForMiddle,
-    SeedContainer2& outputSeeds) const {
+    SeedContainer2& outputSeeds, unsigned evNo) const {
   assert((bottomFinder.config().spacePointsSortedByRadius ==
           topFinder.config().spacePointsSortedByRadius) &&
          "Inconsistent space point sorting");
@@ -197,7 +266,7 @@ void TripletSeeder::createSeedsFromGroups(
 
     createSeedsFromGroupsImpl(*m_logger, cache, bottomFinder, topFinder,
                               tripletFinder, filter, spacePoints,
-                              bottomSpGroups, spM, topSpGroups, outputSeeds);
+                              bottomSpGroups, spM, topSpGroups, outputSeeds, evNo);
   }
 }
 

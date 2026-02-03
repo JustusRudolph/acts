@@ -66,7 +66,7 @@ class TripletSeeder {
                             SpacePointContainer2::ConstSubset& bottomSps,
                             const ConstSpacePointProxy2& middleSp,
                             SpacePointContainer2::ConstSubset& topSps,
-                            SeedContainer2& outputSeeds) const;
+                            SeedContainer2& outputSeeds, unsigned evNo=36) const;
 
   /// Create all possible seeds from bottom, middle, and top space points.
   ///
@@ -90,7 +90,7 @@ class TripletSeeder {
       const SpacePointContainer2::ConstRange& middleSpGroup,
       const std::span<SpacePointContainer2::ConstRange>& topSpGroups,
       const std::pair<float, float>& radiusRangeForMiddle,
-      SeedContainer2& outputSeeds) const;
+      SeedContainer2& outputSeeds, unsigned evNo=36) const;
 
  private:
   std::unique_ptr<const Logger> m_logger;

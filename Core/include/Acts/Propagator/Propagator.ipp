@@ -30,6 +30,7 @@ Acts::Result<void> Acts::Propagator<S, N>::propagate(
   state.stage = PropagatorStage::prePropagation;
 
   // Pre-Propagation: call to the actor list, abort condition check
+  std::cout << "In propagator, calling act()." << std::endl;
   state.options.actorList.act(state, m_stepper, m_navigator, logger());
 
   if (state.options.actorList.checkAbort(state, m_stepper, m_navigator,

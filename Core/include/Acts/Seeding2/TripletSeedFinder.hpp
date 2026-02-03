@@ -156,6 +156,10 @@ class TripletSeedFinder {
     /// coordinates in xyz. This is only used in a detector specific check for
     /// strip modules
     float toleranceParam = 1.1 * UnitConstants::mm;
+
+    /// Minimum cut on the difference in cotTheta between bottom-middle and
+    /// middle-top doublets to avoid numerical instabilities
+    float minimumDeltaCotTheta2Cut = 1e-5;
   };
 
   /// Derived configuration for the triplet seed finder using a magnetic field.
@@ -201,7 +205,7 @@ class TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       DoubletsForMiddleSp::Range& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const = 0;
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo=36) const = 0;
 
   /// Create triplets from the bottom, middle, and top space points.
   ///
@@ -214,7 +218,7 @@ class TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       DoubletsForMiddleSp::Subset& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const = 0;
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo=36) const = 0;
 
   /// Create triplets from the bottom, middle, and top space points.
   ///
@@ -227,7 +231,7 @@ class TripletSeedFinder {
       const SpacePointContainer2& spacePoints, const ConstSpacePointProxy2& spM,
       const DoubletsForMiddleSp::Proxy& bottomDoublet,
       DoubletsForMiddleSp::Subset2& topDoublets,
-      TripletTopCandidates& tripletTopCandidates) const = 0;
+      TripletTopCandidates& tripletTopCandidates, unsigned evNo=36) const = 0;
 };
 
 }  // namespace Acts

@@ -348,7 +348,7 @@ class DoubletSeedFinder {
   virtual void createDoublets(
       const ConstSpacePointProxy2& middleSp, const MiddleSpInfo& middleSpInfo,
       SpacePointContainer2::ConstSubset& candidateSps,
-      DoubletsForMiddleSp& compatibleDoublets) const = 0;
+      DoubletsForMiddleSp& compatibleDoublets, unsigned evNo=36) const = 0;
 
   /// Creates compatible dublets by applying a series of cuts that can be
   /// tested with only two SPs.
@@ -361,7 +361,7 @@ class DoubletSeedFinder {
   virtual void createDoublets(
       const ConstSpacePointProxy2& middleSp, const MiddleSpInfo& middleSpInfo,
       SpacePointContainer2::ConstRange& candidateSps,
-      DoubletsForMiddleSp& compatibleDoublets) const = 0;
+      DoubletsForMiddleSp& compatibleDoublets, unsigned evNo=36) const = 0;
 };
 
 }  // namespace Acts
