@@ -310,15 +310,21 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
   const auto& initialParameters = m_inputInitialTrackParameters(ctx);
   const SimSeedContainer* seeds = nullptr;
 
+  
   if (m_inputSeeds.isInitialized()) {
     seeds = &m_inputSeeds(ctx);
-
+    
     if (initialParameters.size() != seeds->size()) {
       ACTS_ERROR("Number of initial parameters and seeds do not match. "
-                 << initialParameters.size() << " != " << seeds->size());
+        << initialParameters.size() << " != " << seeds->size());
+      }
     }
-  }
-
+    
+    std::cout << "TrackFindingAlgorithm in event " << ctx.eventNumber
+              << " with " << initialParameters.size()
+              << " initial parameters, "
+              << seeds->size() << " seeds, and "
+              << measurements.size() << " measurements." << std::endl;
   // Construct a perigee surface as the target surface
   auto pSurface = Acts::Surface::makeShared<Acts::PerigeeSurface>(
       Acts::Vector3{0., 0., 0.});
@@ -457,10 +463,15 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
     for (const auto& seed : *seeds) {
       SeedIdentifier seedIdentifier = makeSeedIdentifier(seed);
       discoveredSeeds.emplace(seedIdentifier, false);
+      if (ctx.eventNumber == 90) {
+        ACTS_INFO("Created seed identifier in event " << ctx.eventNumber << ": ["
+                  << seedIdentifier[0] << ", " << seedIdentifier[1] << ", "
+                  << seedIdentifier[2] << "].");
+      }
       ACTS_DEBUG("Created seed identifier in event " << ctx.eventNumber << ": ["
-                 << seedIdentifier[0] << ", " << seedIdentifier[1] << ", "
-                 << seedIdentifier[2] << "].");
-    }
+            << seedIdentifier[0] << ", " << seedIdentifier[1] << ", "
+            << seedIdentifier[2] << "].");
+      }
   }
 
   for (std::size_t iSeed = 0; iSeed < initialParameters.size(); ++iSeed) {
@@ -479,7 +490,10 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
           continue;
         }
       }
-
+      if (ctx.eventNumber == 90) {
+        ACTS_INFO("In seed " << iSeed << ". Total number of (deduplicated) seeds: ("
+               << m_nDeduplicatedSeeds << ", " << m_nTotalSeeds << ")");
+      }
       if (m_cfg.stayOnSeed) {
         measSel.setSeed(seed);
       }

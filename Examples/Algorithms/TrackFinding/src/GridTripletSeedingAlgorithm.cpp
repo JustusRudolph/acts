@@ -138,8 +138,15 @@ ProcessCode GridTripletSeedingAlgorithm::execute(
   Acts::CylindricalSpacePointGrid2 grid(m_gridConfig,
                                         logger().cloneWithSuffix("Grid"));
 
+  unsigned evToCheck = 1000000;  // not in use right now
   for (std::size_t i = 0; i < spacePoints.size(); ++i) {
     const auto& sp = spacePoints[i];
+    if (ctx.eventNumber == evToCheck) {
+      ACTS_INFO("Event " << ctx.eventNumber
+                  << " adding space point " << i
+                  << " at (x,y,z)=(" << sp.x() << ","
+                  << sp.y() << "," << sp.z() << ") mm");
+    }
 
     // check if the space point passes the selection
     if (m_spacePointSelector.connected() && !m_spacePointSelector(sp)) {
@@ -151,6 +158,10 @@ ProcessCode GridTripletSeedingAlgorithm::execute(
   }
 
   for (std::size_t i = 0; i < grid.numberOfBins(); ++i) {
+    if (ctx.eventNumber == evToCheck && grid.at(i).size()) {
+      ACTS_INFO("Event " << ctx.eventNumber
+                  << " sorting space points in bin " << i);
+    }
     std::ranges::sort(grid.at(i), [&](const Acts::SpacePointIndex2& a,
                                       const Acts::SpacePointIndex2& b) {
       return spacePoints[a].r() < spacePoints[b].r();
@@ -270,14 +281,28 @@ ProcessCode GridTripletSeedingAlgorithm::execute(
     ACTS_VERBOSE("Process middle " << middle);
 
     bottomSpRanges.clear();
-    for (const auto b : bottom) {
+    for (unsigned i_bottom = 0; i_bottom < bottom.size(); ++i_bottom) {
+      const auto b = bottom[i_bottom];
+      if (ctx.eventNumber == evToCheck) {
+        ACTS_INFO("Event " << ctx.eventNumber
+               << " preparing bottom space point group " << i_bottom << " from bin with " 
+               << coreSpacePoints.range(gridSpacePointRanges.at(b)).size()
+               << " space points");
+      }
       bottomSpRanges.push_back(
           coreSpacePoints.range(gridSpacePointRanges.at(b)).asConst());
     }
     middleSpRange =
         coreSpacePoints.range(gridSpacePointRanges.at(middle)).asConst();
     topSpRanges.clear();
-    for (const auto t : top) {
+    for (unsigned i_top = 0; i_top < top.size(); ++i_top) {
+      const auto t = top[i_top];
+      if (ctx.eventNumber == evToCheck) {
+        ACTS_INFO("Event " << ctx.eventNumber
+               << " preparing top space point group " << i_top << " from bin with " 
+               << coreSpacePoints.range(gridSpacePointRanges.at(t)).size()
+               << " space points");
+      }
       topSpRanges.push_back(
           coreSpacePoints.range(gridSpacePointRanges.at(t)).asConst());
     }
@@ -299,7 +324,7 @@ ProcessCode GridTripletSeedingAlgorithm::execute(
     m_seedFinder->createSeedsFromGroups(
         cache, *bottomDoubletFinder, *topDoubletFinder, *tripletFinder,
         seedFilter, coreSpacePoints, bottomSpRanges, *middleSpRange,
-        topSpRanges, radiusRangeForMiddle, seeds);
+        topSpRanges, radiusRangeForMiddle, seeds, ctx.eventNumber);
   }
 
   ACTS_DEBUG("Created " << seeds.size() << " track seeds from "
