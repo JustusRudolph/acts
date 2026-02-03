@@ -305,6 +305,7 @@ def addSeeding(
     selectedParticles: str = "particles_selected",
     outputDirRoot: Optional[Union[Path, str]] = None,
     outputDirCsv: Optional[Union[Path, str]] = None,
+    writeMatchingDetails: bool = False,
     logLevel: Optional[acts.logging.Level] = None,
     rnd: Optional[acts.examples.RandomNumbers] = None,
 ) -> None:
@@ -356,6 +357,8 @@ def addSeeding(
         selected particles name in the WhiteBoard
     outputDirRoot : Path|str, path, None
         the output folder for ROOT output, None triggers no output
+    writeMatchingDetails : bool, False
+        whether to write detailed matching information per particle to the performance output
     logLevel : acts.logging.Level, None
         logging level to override setting given in `s`
     rnd : RandomNumbers, None
@@ -567,6 +570,7 @@ def addSeeding(
                 selectedParticles,
                 inputParticles,
                 parEstimateAlg.config.outputTrackParameters,
+                writeMatchingDetails,
                 logLevel,
             )
 
@@ -1446,6 +1450,7 @@ def addSeedPerformanceWriters(
     selectedParticles: str,
     inputParticles: str,
     outputTrackParameters: str,
+    writeMatchingDetails: bool = False,
     logLevel: acts.logging.Level = None,
 ):
     """Writes seeding related performance output"""
@@ -1463,6 +1468,7 @@ def addSeedPerformanceWriters(
             inputParticleTrackMatching="particle_seed_matching",
             inputParticleMeasurementsMap="particle_measurements_map",
             filePath=str(outputDirRoot / f"performance_seeding.root"),
+            writeMatchingDetails=writeMatchingDetails,
         )
     )
 
@@ -1493,6 +1499,7 @@ def addSeedFilterML(
     logLevel: Optional[acts.logging.Level] = None,
     outputDirRoot: Optional[Union[Path, str]] = None,
     outputDirCsv: Optional[Union[Path, str]] = None,
+    writeMatchingDetails: bool = False,
 ) -> None:
     customLogLevel = acts.examples.defaultLogging(s, logLevel)()
     from acts.examples.onnx import SeedFilterMLAlgorithm
@@ -1559,6 +1566,7 @@ def addSeedFilterML(
             selectedParticles,
             inputParticles,
             estParams,
+            writeMatchingDetails,
             customLogLevel,
         )
 
