@@ -412,13 +412,13 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
           m_matchedTrackIdxs.back().push_back(trackWithWeight.first);
         }
       }
-      ACTS_INFO("Particle " << particleId.hash()
-             << " (" << particle.pdg() << ")"
-             << " in event " << ctx.eventNumber
-             << " with pT = " << particle.transverseMomentum()
-             << ", eta = " << Acts::VectorHelpers::eta(particle.direction())
-             << " was matched: " << m_treeIsMatched.back()
-      );
+      // ACTS_INFO("Particle " << particleId.hash()
+      //        << " (" << particle.pdg() << ")"
+      //        << " in event " << ctx.eventNumber
+      //        << " with pT = " << particle.transverseMomentum()
+      //        << ", eta = " << Acts::VectorHelpers::eta(particle.direction())
+      //        << " was matched: " << m_treeIsMatched.back()
+      // );
 
     }
     m_matchingTree->Fill();
