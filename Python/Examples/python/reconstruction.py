@@ -6,6 +6,22 @@ from collections import namedtuple
 import acts
 import acts.examples
 
+# ROOT might not be available
+try:
+    from acts.examples.root import (
+        RootTrackFinderNTupleWriter,
+        RootTrackFinderPerformanceWriter,
+        RootTrackFitterPerformanceWriter,
+        RootTrackParameterWriter,
+        RootTrackStatesWriter,
+        RootTrackSummaryWriter,
+        RootVertexNTupleWriter,
+    )
+
+    ACTS_EXAMPLES_ROOT_AVAILABLE = True
+except ImportError:
+    ACTS_EXAMPLES_ROOT_AVAILABLE = False
+
 u = acts.UnitConstants
 
 SeedingAlgorithm = Enum(
@@ -1433,12 +1449,15 @@ def addSeedPerformanceWriters(
 ):
     """Writes seeding related performance output"""
     customLogLevel = acts.examples.defaultLogging(sequence, logLevel)
+    assert (
+        ACTS_EXAMPLES_ROOT_AVAILABLE
+    ), "ROOT output requested but ROOT is not available"
     outputDirRoot = Path(outputDirRoot)
     if not outputDirRoot.exists():
         outputDirRoot.mkdir()
 
     sequence.addWriter(
-        acts.examples.root.RootTrackFinderPerformanceWriter(
+        RootTrackFinderPerformanceWriter(
             level=customLogLevel(),
             inputTracks=tracks,
             inputParticles=selectedParticles,
@@ -1451,7 +1470,7 @@ def addSeedPerformanceWriters(
     )
 
     sequence.addWriter(
-        acts.examples.root.RootTrackParameterWriter(
+        RootTrackParameterWriter(
             level=customLogLevel(),
             inputTrackParameters=outputTrackParameters,
             inputProtoTracks=prototracks,
@@ -1938,12 +1957,15 @@ def addTrackWriters(
     customLogLevel = acts.examples.defaultLogging(s, logLevel)
 
     if outputDirRoot is not None:
+        assert (
+            ACTS_EXAMPLES_ROOT_AVAILABLE
+        ), "ROOT output requested but ROOT is not available"
         outputDirRoot = Path(outputDirRoot)
         if not outputDirRoot.exists():
             outputDirRoot.mkdir()
 
         if writeSummary:
-            trackSummaryWriter = acts.examples.root.RootTrackSummaryWriter(
+            trackSummaryWriter = RootTrackSummaryWriter(
                 level=customLogLevel(),
                 inputTracks=tracks,
                 inputParticles="particles_selected",
@@ -1955,7 +1977,7 @@ def addTrackWriters(
             s.addWriter(trackSummaryWriter)
 
         if writeStates:
-            trackStatesWriter = acts.examples.root.RootTrackStatesWriter(
+            trackStatesWriter = RootTrackStatesWriter(
                 level=customLogLevel(),
                 inputTracks=tracks,
                 inputParticles="particles_selected",
@@ -1968,19 +1990,17 @@ def addTrackWriters(
             s.addWriter(trackStatesWriter)
 
         if writeFitterPerformance:
-            trackFitterPerformanceWriter = (
-                acts.examples.root.RootTrackFitterPerformanceWriter(
-                    level=customLogLevel(),
-                    inputTracks=tracks,
-                    inputParticles="particles_selected",
-                    inputTrackParticleMatching="track_particle_matching",
-                    filePath=str(outputDirRoot / f"performance_fitting_{name}.root"),
-                )
+            trackFitterPerformanceWriter = RootTrackFitterPerformanceWriter(
+                level=customLogLevel(),
+                inputTracks=tracks,
+                inputParticles="particles_selected",
+                inputTrackParticleMatching="track_particle_matching",
+                filePath=str(outputDirRoot / f"performance_fitting_{name}.root"),
             )
             s.addWriter(trackFitterPerformanceWriter)
 
         if writeFinderPerformance:
-            trackFinderPerfWriter = acts.examples.root.RootTrackFinderPerformanceWriter(
+            trackFinderPerfWriter = RootTrackFinderPerformanceWriter(
                 level=customLogLevel(),
                 inputTracks=tracks,
                 inputParticles="particles_selected",
@@ -2152,8 +2172,11 @@ def addGnn(
 
     # Optional performance writer
     if outputDirRoot is not None:
+        assert (
+            ACTS_EXAMPLES_ROOT_AVAILABLE
+        ), "ROOT output requested but ROOT is not available"
         s.addWriter(
-            acts.examples.root.RootTrackFinderNTupleWriter(
+            RootTrackFinderNTupleWriter(
                 level=customLogLevel(),
                 inputTracks="tracks",
                 inputParticles="particles",
@@ -2456,7 +2479,6 @@ def addVertexFitting(
         AdaptiveMultiVertexFinderAlgorithm,
         CsvVertexWriter,
     )
-    from acts.examples.root import RootVertexNTupleWriter
 
     customLogLevel = acts.examples.defaultLogging(s, logLevel)
 
@@ -2547,6 +2569,9 @@ def addVertexFitting(
         )
 
     if outputDirRoot is not None:
+        assert (
+            ACTS_EXAMPLES_ROOT_AVAILABLE
+        ), "ROOT output requested but ROOT is not available"
         outputDirRoot = Path(outputDirRoot)
         if not outputDirRoot.exists():
             outputDirRoot.mkdir()
@@ -2595,6 +2620,9 @@ def addHoughVertexFinding(
     inputTruthVertices = "vertices_truth"
 
     if outputDirRoot is not None:
+        assert (
+            ACTS_EXAMPLES_ROOT_AVAILABLE
+        ), "ROOT output requested but ROOT is not available"
         outputDirRoot = Path(outputDirRoot)
         if not outputDirRoot.exists():
             outputDirRoot.mkdir()
