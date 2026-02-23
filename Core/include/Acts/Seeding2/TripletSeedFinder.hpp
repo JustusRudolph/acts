@@ -161,6 +161,10 @@ class TripletSeedFinder {
     /// Parameter which can loosen the tolerance of the track seed to form a
     /// helix. This is useful for e.g. misaligned seeding.
     float helixCutTolerance = 1;
+    /// Parameter which caps the maximum possible charged particle diameter of
+    /// curvature. This is necessary to avoid rejecting good seeds
+    float maxHelixDiameter2 = (1e6 * UnitConstants::mm * 2) *
+                              (1e6 * UnitConstants::mm * 2);
 
     /// Tolerance parameter used to check the compatibility of space-point
     /// coordinates in xyz. This is only used in a detector specific check for
