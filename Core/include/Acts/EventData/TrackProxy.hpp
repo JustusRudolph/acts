@@ -261,6 +261,7 @@ class TrackProxy
   using Base::momentum;
   using Base::nDoF;
   using Base::nHoles;
+  using Base::nEdgeHoles;
   using Base::nMeasurements;
   using Base::nOutliers;
   using Base::nSharedHits;
@@ -288,119 +289,6 @@ class TrackProxy
     return std::distance(tsRange.begin(), tsRange.end());
   }
 
-<<<<<<< HEAD
-  /// Return a mutable reference to the number of measurements for the track.
-  /// Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The number of measurements
-  unsigned int& nMeasurements()
-    requires(!ReadOnly)
-  {
-    return component<unsigned int, detail_tp::kMeasurementsKey>();
-  }
-
-  /// Return the number of measurements for the track. Const version
-  /// @return The number of measurements
-  unsigned int nMeasurements() const {
-    return component<unsigned int, detail_tp::kMeasurementsKey>();
-  }
-
-  /// Return a mutable reference to the number of holes for the track.
-  /// Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The number of holes
-  unsigned int& nHoles()
-    requires(!ReadOnly)
-  {
-    return component<unsigned int, detail_tp::kHolesKey>();
-  }
-
-  /// Return the number of holes for the track. Const version
-  /// @return The number of holes
-  unsigned int nHoles() const {
-    return component<unsigned int, detail_tp::kHolesKey>();
-  }
-
-  /// Return a mutable reference to the number of edge holes for the track.
-  /// Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The number of edge holes
-  unsigned int& nEdgeHoles()
-    requires(!ReadOnly)
-  {
-    return component<unsigned int, detail_tp::kEdgeHolesKey>();
-  }
-
-  /// Return the number of holes for the track. Const version
-  /// @return The number of holes
-  unsigned int nEdgeHoles() const {
-    return component<unsigned int, detail_tp::kEdgeHolesKey>();
-  }
-
-  /// Return a mutable reference to the number of outliers for the track.
-  /// Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The number of outliers
-  unsigned int& nOutliers()
-    requires(!ReadOnly)
-  {
-    return component<unsigned int, detail_tp::kOutliersKey>();
-  }
-
-  /// Return the number of outliers for the track. Const version
-  /// @return The number of outliers
-  unsigned int nOutliers() const {
-    return component<unsigned int, detail_tp::kOutliersKey>();
-  }
-
-  /// Return a mutable reference to the number of shared hits for the track.
-  /// Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The number of shared hits
-  unsigned int& nSharedHits()
-    requires(!ReadOnly)
-  {
-    return component<unsigned int, detail_tp::kSharedHitsKey>();
-  }
-
-  /// Return the number of shared hits for the track. Const version
-  /// @return The number of shared hits
-  unsigned int nSharedHits() const {
-    return component<unsigned int, detail_tp::kSharedHitsKey>();
-  }
-
-  /// Return a mutable reference to the chi squared
-  /// Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The chi squared
-  float& chi2()
-    requires(!ReadOnly)
-  {
-    return component<float, detail_tp::kChi2Key>();
-  }
-
-  /// Return the chi squared for the track. Const version
-  /// @return The chi squared
-  float chi2() const { return component<float, detail_tp::kChi2Key>(); }
-
-  /// Return a mutable reference to the number of degrees of freedom for the
-  /// track. Mutable version
-  /// @note Only available if the track proxy is not read-only
-  /// @return The number of degrees of freedom
-  unsigned int& nDoF()
-    requires(!ReadOnly)
-  {
-    return component<unsigned int, detail_tp::kNdfKey>();
-  }
-
-  /// Return the number of degrees of freedom for the track. Const version
-  /// @return The number of degrees of freedom
-  unsigned int nDoF() const {
-    return component<unsigned int, detail_tp::kNdfKey>();
-  }
-
-=======
->>>>>>> ed59400ac (feat!: Type erased track and track state proxies (#4889))
   /// Return the index of this track in the track container
   /// @note This is separate from the tip index
   /// @return the track index
