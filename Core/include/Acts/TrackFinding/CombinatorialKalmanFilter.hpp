@@ -551,59 +551,25 @@ class CombinatorialKalmanFilter {
         if (expectMeasurements) {
           // Get local position on the surface, only calculate if expecting measurements
           BoundaryTolerance tol = BoundaryTolerance::AbsoluteEuclidean(-0.1);
-          auto localPosResult = surface->globalToLocal(state.geoContext,
+          auto localPosResult = surface.globalToLocal(state.geoContext,
                                                       stepper.position(state.stepping),
                                                       stepper.direction(state.stepping));
           if (!localPosResult.ok()) {
             ACTS_ERROR("Failed to compute local position on surface "
-                        << surface->geometryId() << ": "
+                        << surface.geometryId() << ": "
                         << localPosResult.error().message());
             return localPosResult.error();
           }
           Vector2 localPosition = localPosResult.value();
-          atBoundary = !( surface->insideBounds(localPosition, tol) );
+          atBoundary = !( surface.insideBounds(localPosition, tol) );
 
           if (atBoundary) {
             ACTS_VERBOSE("Detected edge hole after measurement selection on surface "
-                         << surface->geometryId());
+                         << surface.geometryId());
             currentBranch.nEdgeHoles()++;
           } else {
             ACTS_VERBOSE("Detected hole after measurement selection on surface "
-                         << surface->geometryId());
-            currentBranch.nHoles()++;
-          }
-        }
-
-        auto stateMask = PM::Predicted | PM::Jacobian;
-        // Add a hole or material track state to the multitrajectory
-        TrackIndexType currentTip =
-            addNonSourcelinkState(stateMask, boundState, result, isSensitive,
-                                  expectMeasurements, atBoundary, prevTip);
-        currentBranch.tipIndex() = currentTip;
-        auto currentState = currentBranch.outermostTrackState();
-
-        if (expectMeasurements) {
-          // Get local position on the surface, only calculate if expecting measurements
-          BoundaryTolerance tol = BoundaryTolerance::AbsoluteEuclidean(-0.1);
-          auto localPosResult = surface->globalToLocal(state.geoContext,
-                                                      stepper.position(state.stepping),
-                                                      stepper.direction(state.stepping));
-          if (!localPosResult.ok()) {
-            ACTS_ERROR("Failed to compute local position on surface "
-                        << surface->geometryId() << ": "
-                        << localPosResult.error().message());
-            return localPosResult.error();
-          }
-          Vector2 localPosition = localPosResult.value();
-          atBoundary = !( surface->insideBounds(localPosition, tol) );
-
-          if (atBoundary) {
-            ACTS_VERBOSE("Detected edge hole after measurement selection on surface "
-                         << surface->geometryId());
-            currentBranch.nEdgeHoles()++;
-          } else {
-            ACTS_VERBOSE("Detected hole after measurement selection on surface "
-                         << surface->geometryId());
+                         << surface.geometryId());
             currentBranch.nHoles()++;
           }
         }
