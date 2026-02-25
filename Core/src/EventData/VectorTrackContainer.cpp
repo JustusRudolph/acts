@@ -27,6 +27,7 @@ VectorTrackContainerBase::VectorTrackContainerBase(
       m_referenceSurfaces{other.m_referenceSurfaces},
       m_nMeasurements{other.m_nMeasurements},
       m_nHoles{other.m_nHoles},
+      m_nEdgeHoles{other.m_nEdgeHoles},
       m_chi2{other.m_chi2},
       m_ndf{other.m_ndf},
       m_nOutliers{other.m_nOutliers},
@@ -52,6 +53,7 @@ VectorTrackContainer::IndexType VectorTrackContainer::addTrack_impl() {
 
   m_nMeasurements.emplace_back();
   m_nHoles.emplace_back();
+  m_nEdgeHoles.emplace_back();
 
   m_chi2.emplace_back();
   m_ndf.emplace_back();
@@ -88,6 +90,7 @@ void VectorTrackContainer::removeTrack_impl(IndexType itrack) {
 
   erase(m_nMeasurements);
   erase(m_nHoles);
+  erase(m_nEdgeHoles);
 
   erase(m_chi2);
   erase(m_ndf);
@@ -132,6 +135,7 @@ void VectorTrackContainer::reserve(IndexType size) {
 
   m_nMeasurements.reserve(size);
   m_nHoles.reserve(size);
+  m_nEdgeHoles.reserve(size);
 
   m_chi2.reserve(size);
   m_ndf.reserve(size);
@@ -155,6 +159,7 @@ void VectorTrackContainer::clear() {
 
   m_nMeasurements.clear();
   m_nHoles.clear();
+  m_nEdgeHoles.clear();
 
   m_chi2.clear();
   m_ndf.clear();
