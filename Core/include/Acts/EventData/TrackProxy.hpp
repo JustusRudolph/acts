@@ -261,6 +261,7 @@ class TrackProxy
   using Base::momentum;
   using Base::nDoF;
   using Base::nHoles;
+  using Base::nEdgeHoles;
   using Base::nMeasurements;
   using Base::nOutliers;
   using Base::nSharedHits;
@@ -543,6 +544,7 @@ class TrackProxy
 
     nMeasurements() = other.nMeasurements();
     nHoles() = other.nHoles();
+    nEdgeHoles() = other.nEdgeHoles();
     nOutliers() = other.nOutliers();
     nSharedHits() = other.nSharedHits();
     chi2() = other.chi2();

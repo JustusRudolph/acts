@@ -66,8 +66,11 @@ enum class TrackStateFlag {
   IsSplitHit = 6,
   /// Indicates that the track state has no expected hit.
   HasNoExpectedHit = 7,
+  /// Indicates that the track state has an edge hole
+  /// (missing measurement at the edge of the surface).
+  IsEdgeHole = 8,
   /// Number of defined flags.
-  NumFlags = 8
+  NumFlags = 9
 };
 
 /// CRTP base class for @c TrackStateType and @c TrackStateTypeMap
@@ -133,6 +136,10 @@ class TrackStateTypeBase {
   /// Checks if the track state is a hole
   /// @return true if it is a hole
   bool isHole() const { return test(IsHole); }
+
+  /// Checks if the track state is an edge hole
+  /// @return true if it is an edge hole
+  bool isEdgeHole() const { return test(IsEdgeHole); }
 
   /// Checks if the track state has a shared hit
   /// @return true if it has a shared hit
@@ -234,8 +241,26 @@ class TrackStateTypeBase {
       setUnchecked(HasMeasurement, false);
       setUnchecked(IsOutlier, false);
       setUnchecked(HasNoExpectedHit, false);
+      setUnchecked(IsEdgeHole, false);  // currently mutually exclusive
     }
     setUnchecked(IsHole, value);
+    assertConsistency();
+    return self();
+  }
+
+  /// Sets the track state to be an edge hole
+  /// @param value the value to set
+  /// @return self-reference for chaining
+  Derived& setIsEdgeHole(bool value = true)
+    requires(!ReadOnly)
+  {
+    if (value) {
+      setUnchecked(HasMeasurement, false);
+      setUnchecked(IsOutlier, false);
+      setUnchecked(HasNoExpectedHit, false);
+      setUnchecked(IsHole, false);  // currently mutually exclusive
+    }
+    setUnchecked(IsEdgeHole, value);
     assertConsistency();
     return self();
   }
@@ -319,6 +344,8 @@ class TrackStateTypeBase {
       append("IsOutlier", true);
     } else if (t.isHole()) {
       append("IsHole", true);
+    } else if (t.isEdgeHole()) {
+      append("IsEdgeHole", true);
     } else {
       append("HasMeas", t.hasMeasurement());
     }
@@ -372,16 +399,18 @@ class TrackStateTypeBase {
   void assertConsistency() const {
     assert(!(test(HasNoExpectedHit) &&
              (test(HasMeasurement) || test(IsOutlier) || test(IsHole) ||
-              test(IsSharedHit) || test(IsSplitHit))) &&
+              test(IsEdgeHole) || test(IsSharedHit) || test(IsSplitHit))) &&
            "TrackStateType - NoExpectedHit cannot be set with other "
            "measurement flags");
-    assert(!(test(IsOutlier) && test(IsHole)) &&
-           "TrackStateType - Outlier and Hole cannot be set simultaneously");
+    assert(!(test(IsOutlier) && (test(IsHole) || test(IsEdgeHole))) &&
+           "TrackStateType - Outlier and (Edge)Hole cannot be set simultaneously");
     assert(
-        !(test(IsHole) && test(HasMeasurement)) &&
-        "TrackStateType - Hole and Measurement cannot be set simultaneously");
+        !((test(IsHole) || test(IsEdgeHole)) && test(HasMeasurement)) &&
+        "TrackStateType - (Edge)Hole and Measurement cannot be set simultaneously");
     assert(!(test(IsOutlier) && !test(HasMeasurement)) &&
            "TrackStateType - Outlier flag requires Measurement flag to be set");
+    assert(!(test(IsHole) && test(IsEdgeHole)) &&
+           "TrackStateType - Hole and EdgeHole cannot be set simultaneously");
   }
 };
 
