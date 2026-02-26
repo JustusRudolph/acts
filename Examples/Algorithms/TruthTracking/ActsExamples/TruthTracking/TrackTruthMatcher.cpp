@@ -97,10 +97,10 @@ ProcessCode TrackTruthMatcher::execute(const AlgorithmContext& ctx) const {
     const bool recoMatched =
         static_cast<double>(nMajorityHits) / track.nMeasurements() >=
         m_cfg.matchingRatio;
-    const bool truthMatched =
-        static_cast<double>(nMajorityHits) /
-            particleTruthHitCount.at(majorityParticleId) >=
-        m_cfg.matchingRatio;
+    const double trackTruthRatio = static_cast<double>(nMajorityHits) /
+                                   particleTruthHitCount.at(majorityParticleId);
+    const bool truthMatched = trackTruthRatio >= m_cfg.matchingRatio;
+    const auto trackWithWeight = std::make_pair(track.index(), trackTruthRatio);
 
     if ((!m_cfg.doubleMatching && recoMatched) ||
         (m_cfg.doubleMatching && recoMatched && truthMatched)) {
@@ -110,32 +110,55 @@ ProcessCode TrackTruthMatcher::execute(const AlgorithmContext& ctx) const {
 
       auto& particleTrackMatch = particleTrackMatching[majorityParticleId];
       if (!particleTrackMatch.track) {
-        particleTrackMatch.track = track.index();
+        particleTrackMatch.track = trackWithWeight;
       } else {
         // we already have a track associated with this particle and have to
         // resolve the ambiguity.
         // we will use the track with more hits and smaller chi2
-        const auto& otherTrack =
+        const auto& currBestTrack =
             tracks.getTrack(particleTrackMatch.track.value());
-        if (otherTrack.nMeasurements() < track.nMeasurements() ||
-            otherTrack.chi2() > track.chi2()) {
-          trackParticleMatching[otherTrack.index()].classification =
+        if (currBestTrack.nMeasurements() < track.nMeasurements() ||
+            currBestTrack.chi2() > track.chi2()) {
+          trackParticleMatching[currBestTrack.index()].classification =
               TrackMatchClassification::Duplicate;
-          particleTrackMatch.track = track.index();
+          // previous now goes to duplicate since it has a worse match
+          particleTrackMatch.duplicateIdxs.push_back(
+              particleTrackMatch.track.value());
+          // assign the new track as the main matched track
+          particleTrackMatch.track = trackWithWeight;
         } else {
           trackParticleMatch.classification =
               TrackMatchClassification::Duplicate;
+          particleTrackMatch.duplicateIdxs.push_back(trackWithWeight);
         }
 
         ++particleTrackMatch.duplicates;
       }
-    } else {
+    } else {  // not matched, i.e. fake track
+      ACTS_DEBUG("Track " << track.tipIndex() << " in event " << ctx.eventNumber
+                 << " NOT MATCHED to particle " << majorityParticleId.particle()
+                 << " with " << particleTruthHitCount.at(majorityParticleId) 
+                 << " hits in event " << ctx.eventNumber << ". Out of " 
+                 << track.nMeasurements() << " track hits, " 
+                 << nMajorityHits << " were right.");
       trackParticleMatching[track.index()] = {TrackMatchClassification::Fake,
                                               std::nullopt, particleHitCounts};
 
       auto& particleTrackMatch = particleTrackMatching[majorityParticleId];
+      particleTrackMatch.fakeIdxs.push_back(trackWithWeight);
       ++particleTrackMatch.fakes;
     }
+  }
+  // Sort duplicate and fakes by decreasing weight
+  for (auto& [_, entry] : particleTrackMatching) {
+    std::sort(entry.duplicateIdxs.begin(), entry.duplicateIdxs.end(),
+              [](const TrackIndexWithWeight& t1, const TrackIndexWithWeight& t2) {
+                return t1.second > t2.second;  // sort by weight
+              });
+    std::sort(entry.fakeIdxs.begin(), entry.fakeIdxs.end(),
+              [](const TrackIndexWithWeight& t1, const TrackIndexWithWeight& t2) {
+                return t1.second > t2.second;
+              });
   }
 
   m_outputTrackParticleMatching(ctx, std::move(trackParticleMatching));
