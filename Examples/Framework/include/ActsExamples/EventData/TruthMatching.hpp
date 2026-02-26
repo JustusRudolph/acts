@@ -20,6 +20,8 @@
 
 namespace ActsExamples {
 
+using TrackIndexWithWeight = std::pair<TrackIndexType, double>;
+
 enum class TrackMatchClassification {
   Unknown = 0,
   /// The track is associated to a truth particle
@@ -41,7 +43,10 @@ struct TrackMatchEntry {
 };
 
 struct ParticleMatchEntry {
-  std::optional<TrackIndexType> track;
+  std::optional<TrackIndexWithWeight> track;
+  // weight is the ratio of the number of hits in track belonging to the particle
+  std::vector<TrackIndexWithWeight> duplicateIdxs;
+  std::vector<TrackIndexWithWeight> fakeIdxs;
   std::uint32_t duplicates{};
   std::uint32_t fakes{};
 };
