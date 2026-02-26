@@ -236,7 +236,8 @@ ProcessCode RootTrackFitterPerformanceWriter::writeT(
     // Fill the trajectory summary info
     m_trackSummaryPlotTool.fill(fittedParameters, track.nTrackStates(),
                                 track.nMeasurements(), track.nOutliers(),
-                                track.nHoles(), track.nSharedHits());
+                                track.nHoles(), track.nEdgeHoles(),
+                                track.nSharedHits());
   }
 
   // Fill the efficiency, defined as the ratio between number of tracks with

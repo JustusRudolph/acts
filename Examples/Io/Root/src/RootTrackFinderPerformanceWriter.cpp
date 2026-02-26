@@ -250,13 +250,14 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
     // Fill the trajectory summary info
     m_trackSummaryPlotTool.fill(fittedParameters, track.nTrackStates(),
                                 track.nMeasurements(), track.nOutliers(),
-                                track.nHoles(), track.nSharedHits());
+                                track.nHoles(), track.nEdgeHoles(),
+                                track.nSharedHits());
 
     // Potentially fill other track summary caches for the given volumes
     for (const auto& [key, volumes] : m_cfg.subDetectorTrackSummaryVolumes) {
       ACTS_VERBOSE("Fill track summary stats for subset " << key);
       std::size_t nTrackStates{}, nMeasurements{}, nOutliers{}, nHoles{},
-          nSharedHits{};
+                  nEdgeHoles{}, nSharedHits{};
       for (auto state : track.trackStatesReversed()) {
         if (!state.hasReferenceSurface() ||
             !volumes.contains(state.referenceSurface().geometryId().volume())) {
@@ -268,12 +269,13 @@ ProcessCode RootTrackFinderPerformanceWriter::writeT(
             static_cast<std::size_t>(state.typeFlags().isMeasurement());
         nOutliers += static_cast<std::size_t>(state.typeFlags().isOutlier());
         nHoles += static_cast<std::size_t>(state.typeFlags().isHole());
+        nEdgeHoles += static_cast<std::size_t>(state.typeFlags().isEdgeHole());
         nSharedHits +=
             static_cast<std::size_t>(state.typeFlags().isSharedHit());
       }
       m_subDetectorSummaryTools.at(key).fill(fittedParameters, nTrackStates,
                                              nMeasurements, nOutliers, nHoles,
-                                             nSharedHits);
+                                             nEdgeHoles, nSharedHits);
     }
 
     // Get the truth matching information

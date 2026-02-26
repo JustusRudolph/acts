@@ -53,6 +53,9 @@ TrackSummaryPlotTool::TrackSummaryPlotTool(
   m_profiles.insert({"nHoles_vs_eta", makeProfile(m_cfg, "nHoles_vs_eta",
                                                   "Number of holes vs. #eta",
                                                   m_cfg.varBinning.at("Eta"))});
+  m_profiles.insert({"nEdgeHoles_vs_eta", makeProfile(m_cfg, "nEdgeHoles_vs_eta",
+                                                  "Number of edge holes vs. #eta",
+                                                  m_cfg.varBinning.at("Eta"))});
   m_profiles.insert(
       {"nOutliers_vs_eta",
        makeProfile(m_cfg, "nOutliers_vs_eta", "Number of outliers vs. #eta",
@@ -72,6 +75,9 @@ TrackSummaryPlotTool::TrackSummaryPlotTool(
   m_profiles.insert({"nHoles_vs_pT", makeProfile(m_cfg, "nHoles_vs_pT",
                                                  "Number of holes vs. pT",
                                                  m_cfg.varBinning.at("Pt"))});
+  m_profiles.insert({"nEdgeHoles_vs_pT", makeProfile(m_cfg, "nEdgeHoles_vs_pT",
+                                                 "Number of edge holes vs. pT",
+                                                 m_cfg.varBinning.at("Pt"))});
   m_profiles.insert(
       {"nOutliers_vs_pT",
        makeProfile(m_cfg, "nOutliers_vs_pT", "Number of outliers vs. pT",
@@ -85,7 +91,7 @@ TrackSummaryPlotTool::TrackSummaryPlotTool(
 void TrackSummaryPlotTool::fill(
     const Acts::BoundTrackParameters& fittedParameters, std::size_t nStates,
     std::size_t nMeasurements, std::size_t nOutliers, std::size_t nHoles,
-    std::size_t nSharedHits) {
+    std::size_t nEdgeHoles, std::size_t nSharedHits) {
   using Acts::VectorHelpers::eta;
   using Acts::VectorHelpers::perp;
   const auto momentum = fittedParameters.momentum();
@@ -98,6 +104,8 @@ void TrackSummaryPlotTool::fill(
   m_profiles.at("nOutliers_vs_eta")
       .fill({fit_eta}, static_cast<double>(nOutliers));
   m_profiles.at("nHoles_vs_eta").fill({fit_eta}, static_cast<double>(nHoles));
+  m_profiles.at("nEdgeHoles_vs_eta")
+      .fill({fit_eta}, static_cast<double>(nEdgeHoles));
   m_profiles.at("nSharedHits_vs_eta")
       .fill({fit_eta}, static_cast<double>(nSharedHits));
 
@@ -107,6 +115,8 @@ void TrackSummaryPlotTool::fill(
   m_profiles.at("nOutliers_vs_pT")
       .fill({fit_pT}, static_cast<double>(nOutliers));
   m_profiles.at("nHoles_vs_pT").fill({fit_pT}, static_cast<double>(nHoles));
+  m_profiles.at("nEdgeHoles_vs_pT")
+      .fill({fit_pT}, static_cast<double>(nEdgeHoles));
   m_profiles.at("nSharedHits_vs_pT")
       .fill({fit_pT}, static_cast<double>(nSharedHits));
 }

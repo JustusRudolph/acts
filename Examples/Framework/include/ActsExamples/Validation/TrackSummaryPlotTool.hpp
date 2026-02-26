@@ -53,7 +53,8 @@ class TrackSummaryPlotTool {
   /// @param nSharedHits number of shared hits
   void fill(const Acts::BoundTrackParameters& fittedParameters,
             std::size_t nStates, std::size_t nMeasurements,
-            std::size_t nOutliers, std::size_t nHoles, std::size_t nSharedHits);
+            std::size_t nOutliers, std::size_t nHoles,
+            std::size_t nEdgeHoles, std::size_t nSharedHits);
 
   /// @brief Accessor for profile histograms map (const reference)
   const std::map<std::string, ProfileHistogram1>& profiles() const {

@@ -122,6 +122,8 @@ class RootTrackSummaryWriter final : public WriterT<ConstTrackContainer> {
   std::vector<unsigned int> m_nOutliers;
   /// The number of holes
   std::vector<unsigned int> m_nHoles;
+  /// The number of edge holes
+  std::vector<unsigned int> m_nEdgeHoles;
   /// The number of shared hits
   std::vector<unsigned int> m_nSharedHits;
   /// The total chi2

@@ -82,6 +82,7 @@ RootTrackSummaryWriter::RootTrackSummaryWriter(
   m_outputTree->Branch("nMeasurements", &m_nMeasurements);
   m_outputTree->Branch("nOutliers", &m_nOutliers);
   m_outputTree->Branch("nHoles", &m_nHoles);
+  m_outputTree->Branch("nEdgeHoles", &m_nEdgeHoles);
   m_outputTree->Branch("nSharedHits", &m_nSharedHits);
   m_outputTree->Branch("chi2Sum", &m_chi2Sum);
   m_outputTree->Branch("NDF", &m_NDF);
@@ -285,6 +286,7 @@ ProcessCode RootTrackSummaryWriter::writeT(const AlgorithmContext& ctx,
     m_nMeasurements.push_back(track.nMeasurements());
     m_nOutliers.push_back(track.nOutliers());
     m_nHoles.push_back(track.nHoles());
+    m_nEdgeHoles.push_back(track.nEdgeHoles());
     m_nSharedHits.push_back(track.nSharedHits());
     m_chi2Sum.push_back(track.chi2());
     m_NDF.push_back(track.nDoF());
@@ -595,6 +597,7 @@ ProcessCode RootTrackSummaryWriter::writeT(const AlgorithmContext& ctx,
   m_nMeasurements.clear();
   m_nOutliers.clear();
   m_nHoles.clear();
+  m_nEdgeHoles.clear();
   m_nSharedHits.clear();
   m_chi2Sum.clear();
   m_NDF.clear();
