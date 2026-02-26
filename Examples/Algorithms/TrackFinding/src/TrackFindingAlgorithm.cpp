@@ -363,11 +363,13 @@ ProcessCode TrackFindingAlgorithm::execute(const AlgorithmContext& ctx) const {
                                   firstPropOptions);
 
   firstOptions.targetSurface = m_cfg.reverseSearch ? pSurface.get() : nullptr;
+  firstOptions.targetSurfaceTolerance = m_cfg.edgeHoleTolerance;
 
   TrackFinderOptions secondOptions(ctx.geoContext, ctx.magFieldContext,
                                    ctx.calibContext, extensions,
                                    secondPropOptions);
   secondOptions.targetSurface = m_cfg.reverseSearch ? nullptr : pSurface.get();
+  secondOptions.targetSurfaceTolerance = m_cfg.edgeHoleTolerance;
   secondOptions.skipPrePropagationUpdate = true;
 
   using Extrapolator = Acts::Propagator<Acts::SympyStepper, Acts::Navigator>;

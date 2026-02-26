@@ -94,6 +94,9 @@ struct CombinatorialKalmanFilterOptions {
   ///       certain surface
   const Surface* targetSurface = nullptr;
 
+  /// The boundary tolerance for the target surface
+  BoundaryTolerance targetSurfaceTolerance = BoundaryTolerance::AbsoluteEuclidean(0);
+
   /// Whether to consider multiple scattering.
   bool multipleScattering = true;
 
@@ -206,6 +209,10 @@ class CombinatorialKalmanFilter {
 
     /// The target surface aborter
     SurfaceReached targetReached{std::numeric_limits<double>::lowest()};
+
+    /// The boundary tolerance for the target surface
+    BoundaryTolerance targetSurfaceTolerance =
+      BoundaryTolerance::AbsoluteEuclidean(0);
 
     /// Whether to consider multiple scattering.
     bool multipleScattering = true;
@@ -547,9 +554,30 @@ class CombinatorialKalmanFilter {
           }
         }
 
+        bool atBoundary = false;
         if (expectMeasurements) {
-          ACTS_VERBOSE("Detected hole after measurement selection on surface "
-                       << surface.geometryId());
+          // Get local position on the surface, only calculate if expecting measurements
+          auto localPosResult = surface.globalToLocal(state.geoContext,
+                                                      stepper.position(state.stepping),
+                                                      stepper.direction(state.stepping));
+          if (!localPosResult.ok()) {
+            ACTS_ERROR("Failed to compute local position on surface "
+                        << surface.geometryId() << ": "
+                        << localPosResult.error().message());
+            return localPosResult.error();
+          }
+          Vector2 localPosition = localPosResult.value();
+          atBoundary = !( surface.insideBounds(localPosition, targetSurfaceTolerance) );
+
+          if (atBoundary) {
+            ACTS_VERBOSE("Detected edge hole after measurement selection on surface "
+                         << surface.geometryId());
+            currentBranch.nEdgeHoles()++;
+          } else {
+            ACTS_VERBOSE("Detected hole after measurement selection on surface "
+                         << surface.geometryId());
+            currentBranch.nHoles()++;
+          }
         }
 
         auto stateMask = PM::Predicted | PM::Jacobian;
@@ -557,12 +585,9 @@ class CombinatorialKalmanFilter {
         // Add a hole or material track state to the multitrajectory
         TrackIndexType currentTip =
             addNonSourcelinkState(stateMask, boundState, result, isSensitive,
-                                  expectMeasurements, prevTip);
+                                  expectMeasurements, atBoundary, prevTip);
         currentBranch.tipIndex() = currentTip;
         auto currentState = currentBranch.outermostTrackState();
-        if (expectMeasurements) {
-          currentBranch.nHoles()++;
-        }
 
         BranchStopperResult branchStopperResult =
             extensions.branchStopper(currentBranch, currentState);
@@ -725,7 +750,7 @@ class CombinatorialKalmanFilter {
     TrackIndexType addNonSourcelinkState(TrackStatePropMask stateMask,
                                          const BoundState& boundState,
                                          result_type& result, bool isSensitive,
-                                         bool expectMeasurements,
+                                         bool expectMeasurements, bool atBoundary,
                                          TrackIndexType prevTip) const {
       using PM = TrackStatePropMask;
 
@@ -757,7 +782,9 @@ class CombinatorialKalmanFilter {
       }
       typeFlags.setHasParameters();
       if (isSensitive) {
-        if (expectMeasurements) {
+        if (expectMeasurements && atBoundary) {
+          typeFlags.setIsEdgeHole();
+        } else if (expectMeasurements) {
           typeFlags.setIsHole();
         } else {
           typeFlags.setHasNoExpectedHit();
@@ -837,6 +864,7 @@ class CombinatorialKalmanFilter {
     auto& combKalmanActor =
         propOptions.actorList.template get<CombinatorialKalmanFilterActor>();
     combKalmanActor.targetReached.surface = tfOptions.targetSurface;
+    combKalmanActor.targetSurfaceTolerance = tfOptions.targetSurfaceTolerance;
     combKalmanActor.multipleScattering = tfOptions.multipleScattering;
     combKalmanActor.energyLoss = tfOptions.energyLoss;
     combKalmanActor.skipPrePropagationUpdate =

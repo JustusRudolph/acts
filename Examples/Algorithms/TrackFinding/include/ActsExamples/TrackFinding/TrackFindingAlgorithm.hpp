@@ -125,6 +125,9 @@ class TrackFindingAlgorithm final : public IAlgorithm {
     std::vector<std::uint32_t> pixelVolumeIds;
     std::vector<std::uint32_t> stripVolumeIds;
 
+    // Tolerance for edge hole definition (default none)
+    Acts::BoundaryTolerance edgeHoleTolerance = Acts::BoundaryTolerance::AbsoluteEuclidean(0);
+
     // additional track selector settings
     std::size_t maxPixelHoles = std::numeric_limits<std::size_t>::max();
     std::size_t maxStripHoles = std::numeric_limits<std::size_t>::max();
