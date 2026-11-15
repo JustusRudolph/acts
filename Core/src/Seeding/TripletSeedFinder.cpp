@@ -107,6 +107,7 @@ class Impl final : public TripletSeedFinder {
     // max approximation error for allowed scattering angles of 0.04 rad at
     // eta=infinity: ~8.5%
     const float scatteringInRegion2 = m_cfg.multipleScattering2 * iSinTheta2;
+    const float cotThetaDiffMax2 = m_cfg.cotThetaDiffMax * m_cfg.cotThetaDiffMax;
 
     std::size_t topDoubletOffset = 0;
     for (auto [topDoublet, topDoubletIndex] :
@@ -132,6 +133,19 @@ class Impl final : public TripletSeedFinder {
 
       const float deltaCotTheta = cotThetaB - cotThetaT;
       const float deltaCotTheta2 = deltaCotTheta * deltaCotTheta;
+
+      // Fixed upper limit on the cotTheta difference, independent of pT and
+      // of the uncertainties (infinite by default). The limit is the same for
+      // every top, so the sorted early exit is valid for it too.
+      if (deltaCotTheta2 > cotThetaDiffMax2) {
+        if constexpr (sortedByCotTheta) {
+          if (cotThetaB < cotThetaT) {
+            break;
+          }
+          topDoubletOffset = topDoubletIndex + 1;
+        }
+        continue;
+      }
 
       // Apply a cut on the compatibility between the r-z slope of the two
       // seed segments. This is done by comparing the squared difference

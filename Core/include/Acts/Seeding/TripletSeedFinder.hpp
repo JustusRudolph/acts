@@ -157,9 +157,10 @@ class TripletSeedFinder {
     float toleranceParam = 1.1;
 
     /// Maximum allowed difference in cot(theta) between the bottom and top
-    /// doublets, applied as a pre-filter before the expensive strip
-    /// coordinate transformation. Only active when both `useStripInfo` and
-    /// `sortedByCotTheta` are true. Set to infinity (default) to disable.
+    /// doublets, a fixed cut on top of the scattering-based compatibility
+    /// check. For pixels it is always applied; for strips it is a pre-filter
+    /// before the expensive strip coordinate transformation, only active when
+    /// `sortedByCotTheta` is true. Set to infinity (default) to disable.
     float cotThetaDiffMax = std::numeric_limits<float>::infinity();
 
     /// Maximum allowed chi2 of the three times of the triplet, transported to

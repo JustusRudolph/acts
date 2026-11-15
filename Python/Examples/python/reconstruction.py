@@ -60,6 +60,7 @@ SeedFinderConfigArg = namedtuple(
         "doubletTimeCutNSigma",
         "useTimeTripletCut",
         "tripletTimeChi2Max",
+        "deltaCotThetaMax",
         "deltaR",  # (min,max)
         "deltaRBottomSP",  # (min,max)
         "deltaRTopSP",  # (min,max)
@@ -68,7 +69,7 @@ SeedFinderConfigArg = namedtuple(
         "r",  # (min,max)
         "z",  # (min,max)
     ],
-    defaults=[None] * 27 + [(None, None)] * 7,
+    defaults=[None] * 28 + [(None, None)] * 7,
 )
 SeedFinderOptionsArg = namedtuple(
     "SeedFinderOptions", ["beamPos", "bFieldInZ"], defaults=[(None, None), None]
@@ -1213,6 +1214,7 @@ def addOrthogonalTripletSeeding(
             zMax=seedFinderConfigArg.z[1],
             phiMin=spacePointGridConfigArg.phi[0],
             phiMax=spacePointGridConfigArg.phi[1],
+            deltaPhiMax=seedFinderConfigArg.deltaPhiMax,
             # Note: OrthogonalTripletSeedingAlgorithm is KD-tree based and has
             # no grid/bin-finder config (no phiBinDeflectionCoverage,
             # maxPhiBins, zBinEdges, zBinsCustomLooping, zBinNeighborsTop/
@@ -1241,6 +1243,7 @@ def addOrthogonalTripletSeeding(
             helixCutTolerance=seedFinderConfigArg.helixCutTolerance,
             sigmaScattering=seedFinderConfigArg.sigmaScattering,
             radLengthPerSeed=seedFinderConfigArg.radLengthPerSeed,
+            deltaCotThetaMax=seedFinderConfigArg.deltaCotThetaMax,
             toleranceParam=seedFinderConfigArg.toleranceParam,
             deltaInvHelixDiameter=seedFilterConfigArg.deltaInvHelixDiameter,
             compatSeedWeight=seedFilterConfigArg.compatSeedWeight,

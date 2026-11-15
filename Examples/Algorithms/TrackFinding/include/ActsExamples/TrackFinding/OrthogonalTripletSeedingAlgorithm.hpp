@@ -142,6 +142,10 @@ class OrthogonalTripletSeedingAlgorithm final : public IAlgorithm {
     /// is 5%
     /// TODO: necessary to make amount of material dependent on detector region?
     float radLengthPerSeed = 0.05;
+    /// Fixed maximum difference in cot(theta) between the bottom and top
+    /// doublets of a triplet, on top of the scattering-based check.
+    /// Infinity (default) disables it.
+    float deltaCotThetaMax = std::numeric_limits<float>::infinity();
 
     /// Tolerance parameter used to check the compatibility of space-point
     /// coordinates in xyz. This is only used in a detector specific check for

@@ -24,6 +24,7 @@
 #include <cmath>
 #include <csignal>
 #include <cstddef>
+#include <numbers>
 
 namespace ActsExamples {
 
@@ -138,6 +139,35 @@ ProcessCode OrthogonalTripletSeedingAlgorithm::execute(
     rRangeSPExtent.extend({newSp.xy()[0], newSp.xy()[1], newSp.zr()[0]});
   }
 
+  // phi is not periodic in the k-d tree: space points close to +-pi are
+  // inserted a second time, shifted by -+2pi, so that the candidate search
+  // around a middle space point near the seam also finds the space points on
+  // the other side. The copies lie outside [-pi, pi] and are therefore never
+  // used as middle space points; seeds are mapped back to the original space
+  // points through copiedFromIndex.
+  const std::size_t nOriginalSpacePoints = coreSpacePoints.size();
+  for (std::size_t i = 0; i < nOriginalSpacePoints; ++i) {
+    const float phi = coreSpacePoints.at(i).phi();
+    float shiftedPhi = 0;
+    if (phi > std::numbers::pi_v<float> - m_cfg.deltaPhiMax) {
+      shiftedPhi = phi - 2 * std::numbers::pi_v<float>;
+    } else if (phi < -std::numbers::pi_v<float> + m_cfg.deltaPhiMax) {
+      shiftedPhi = phi + 2 * std::numbers::pi_v<float>;
+    } else {
+      continue;
+    }
+    Acts::SpacePointIndex copyIndex = coreSpacePoints.size();
+    auto copy = coreSpacePoints.createSpacePoint();
+    const auto original = coreSpacePoints.at(i);
+    copy.copiedFromIndex() = original.copiedFromIndex();
+    copy.xy() = original.xy();
+    copy.zr() = original.zr();
+    copy.phi() = shiftedPhi;
+    copy.varianceZ() = original.varianceZ();
+    copy.varianceR() = original.varianceR();
+    kdTreeBuilder.insert(copyIndex, shiftedPhi, copy.zr()[1], copy.zr()[0]);
+  }
+
   ACTS_VERBOSE("Created k-d tree populated with " << kdTreeBuilder.size()
                                                   << " space points");
 
@@ -148,8 +178,10 @@ ProcessCode OrthogonalTripletSeedingAlgorithm::execute(
   lhOptions.rMax = m_cfg.rMax;
   lhOptions.zMin = m_cfg.zMin;
   lhOptions.zMax = m_cfg.zMax;
-  lhOptions.phiMin = m_cfg.phiMin;
-  lhOptions.phiMax = m_cfg.phiMax;
+  // the candidate search may extend beyond the middle phi range by
+  // deltaPhiMax, to reach the phi-shifted copies across the +-pi seam
+  lhOptions.phiMin = m_cfg.phiMin - m_cfg.deltaPhiMax;
+  lhOptions.phiMax = m_cfg.phiMax + m_cfg.deltaPhiMax;
   // lhOptions (low-high) is used for top candidate search (middle->outer)
   lhOptions.deltaRMin =
       std::isnan(m_cfg.deltaRMinTop) ? m_cfg.deltaRMin : m_cfg.deltaRMinTop;
@@ -211,6 +243,7 @@ ProcessCode OrthogonalTripletSeedingAlgorithm::execute(
   tripletFinderConfig.minPt = m_cfg.minPt;
   tripletFinderConfig.sigmaScattering = m_cfg.sigmaScattering;
   tripletFinderConfig.radLengthPerSeed = m_cfg.radLengthPerSeed;
+  tripletFinderConfig.cotThetaDiffMax = m_cfg.deltaCotThetaMax;
   tripletFinderConfig.impactMax = m_cfg.impactMax;
   tripletFinderConfig.helixCutTolerance = m_cfg.helixCutTolerance;
   tripletFinderConfig.toleranceParam = m_cfg.toleranceParam;
@@ -242,6 +275,12 @@ ProcessCode OrthogonalTripletSeedingAlgorithm::execute(
   // and seeing what happens if we take them to be our middle space point.
   for (const auto &middle : kdTree) {
     ACTS_VERBOSE("Process middle " << middle.second);
+
+    // phi-shifted copies are only candidates, never middle space points
+    // (also covers a copy landing exactly on +-pi)
+    if (middle.second >= nOriginalSpacePoints) {
+      continue;
+    }
 
     const auto spM = coreSpacePoints.at(middle.second).asConst();
 
