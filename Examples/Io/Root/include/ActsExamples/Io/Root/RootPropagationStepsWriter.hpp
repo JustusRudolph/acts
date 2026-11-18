@@ -88,6 +88,8 @@ class RootPropagationStepsWriter : public WriterT<PropagationSummaries> {
   int m_eventNr = 0;
   /// track number
   int m_trackNr = 0;
+  /// index of the seed the propagation started from, -1 if none
+  int m_seedIndex = -1;
 
   // initial trajectory parameters
   float m_d0 = 0;

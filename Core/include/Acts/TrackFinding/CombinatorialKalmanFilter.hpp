@@ -23,6 +23,7 @@
 #include "Acts/Propagator/detail/AbortConditions.hpp"
 #include "Acts/Propagator/detail/LoopProtection.hpp"
 #include "Acts/Propagator/detail/PointwiseMaterialInteraction.hpp"
+#include "Acts/Propagator/detail/SteppingLogger.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilterError.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilterExtensions.hpp"
 #include "Acts/TrackFitting/BetheHeitlerApprox.hpp"
@@ -43,6 +44,22 @@ namespace Acts {
 
 /// @addtogroup track_finding
 /// @{
+
+/// Steps of one combinatorial Kalman filter propagation, recorded by a
+/// `detail::SteppingLogger` that runs in front of the filter actor.
+///
+/// All branches of a seed are propagated in one go: when a branch ends, the
+/// stepper restarts at the outermost state of the next active branch. The
+/// steps of all branches therefore follow each other in `steps`, and
+/// `segmentStarts` marks where the stepper restarted.
+struct CombinatorialKalmanFilterSteps {
+  /// All recorded steps, branch after branch
+  std::vector<detail::Step> steps;
+
+  /// Index into `steps` of the first step after each (re)start of the
+  /// stepper. The first entry is 0; a segment ends where the next one starts.
+  std::vector<std::size_t> segmentStarts;
+};
 
 /// Combined options for the combinatorial Kalman filter.
 ///
@@ -115,6 +132,12 @@ struct CombinatorialKalmanFilterOptions {
   /// @note Keep enabled if the surfaces themselves are needed, e.g. for a refit
   ///       with the `DirectNavigator`.
   bool recordMaterialStates = true;
+
+  /// If set, the steps of the propagation are recorded into this object. It
+  /// is overwritten by every call to `findTracks`, and also filled if the
+  /// propagation fails, up to the failing step.
+  /// @note Not supported with a multi-component stepper, where it stays empty.
+  CombinatorialKalmanFilterSteps* recordedSteps = nullptr;
 };
 
 /// Options for the combinatorial Kalman filter with bremsstrahlung recovery.
@@ -296,6 +319,10 @@ class CombinatorialKalmanFilter {
     /// storage in the single-component case.
     [[no_unique_address]] std::conditional_t<IsMultiStepper, BremState,
                                              NoBremState> brem;
+
+    /// Where to mark the restarts of the stepper in the recorded steps, see
+    /// CombinatorialKalmanFilterSteps::segmentStarts. Not recorded if null.
+    std::vector<std::size_t>* segmentStarts{nullptr};
 
     /// Actor logger instance
     const Logger* actorLogger{nullptr};
@@ -481,6 +508,15 @@ class CombinatorialKalmanFilter {
 
       // The stepper restarts its path length at zero
       result.pathLengthOffset = currentState.pathLength();
+
+      // The steps after this restart belong to the next branch
+      if constexpr (!IsMultiStepper) {
+        if (segmentStarts != nullptr) {
+          segmentStarts->push_back(
+              state.actor.template get<detail::SteppingLogger::State>()
+                  .steps.size());
+        }
+      }
 
       // Reset the stepping state
       if constexpr (!IsMultiStepper) {
@@ -1179,8 +1215,15 @@ class CombinatorialKalmanFilter {
       track_container_t& trackContainer, TrackProxy rootBranch) const {
     // The actor stops the propagation itself, including at the path limit
     using CombinatorialKalmanFilterActor = Actor;
+    // With a single-component stepper, a SteppingLogger runs in a composite
+    // actor before the filter in every step, so a restart of the stepper by
+    // the filter is seen by the logger in the next step. The filter still
+    // decides alone when the propagation ends.
+    using PropagatorActor = std::conditional_t<
+        IsMultiStepper, CombinatorialKalmanFilterActor,
+        ActorList<detail::SteppingLogger, CombinatorialKalmanFilterActor>>;
     using PropagatorOptions =
-        typename propagator_t::template Options<CombinatorialKalmanFilterActor>;
+        typename propagator_t::template Options<PropagatorActor>;
     PropagatorOptions propOptions(tfOptions.geoContext,
                                   tfOptions.magFieldContext);
 
@@ -1188,7 +1231,14 @@ class CombinatorialKalmanFilter {
     propOptions.setPlainOptions(tfOptions.propagatorPlainOptions);
 
     // Catch the actor
-    auto& combKalmanActor = propOptions.actor;
+    auto& combKalmanActor = [&]() -> CombinatorialKalmanFilterActor& {
+      if constexpr (IsMultiStepper) {
+        return propOptions.actor;
+      } else {
+        return propOptions.actor
+            .template get<CombinatorialKalmanFilterActor>();
+      }
+    }();
     combKalmanActor.targetSurface = tfOptions.targetSurface;
     combKalmanActor.multipleScattering = tfOptions.multipleScattering;
     combKalmanActor.energyLoss = tfOptions.energyLoss;
@@ -1201,6 +1251,20 @@ class CombinatorialKalmanFilter {
 
     // copy delegates to calibrator, updater, branch stopper
     combKalmanActor.extensions = tfOptions.extensions;
+
+    // Record the steps only if asked for
+    if constexpr (!IsMultiStepper) {
+      propOptions.actor.template get<detail::SteppingLogger>().sterile =
+          tfOptions.recordedSteps == nullptr;
+      if (tfOptions.recordedSteps != nullptr) {
+        tfOptions.recordedSteps->steps.clear();
+        tfOptions.recordedSteps->segmentStarts = {0};
+        combKalmanActor.segmentStarts =
+            &tfOptions.recordedSteps->segmentStarts;
+      }
+    } else if (tfOptions.recordedSteps != nullptr) {
+      *tfOptions.recordedSteps = {};
+    }
 
     // Scratch buffers for the multi-component (bremsstrahlung) path. They must
     // outlive the propagation below; they are left untouched by a
@@ -1245,7 +1309,14 @@ class CombinatorialKalmanFilter {
       }
     }
 
-    auto& r = propState.actor;
+    auto& r = [&]() -> CombinatorialKalmanFilterResult<track_container_t>& {
+      if constexpr (IsMultiStepper) {
+        return propState.actor;
+      } else {
+        return propState.actor.template get<
+            CombinatorialKalmanFilterResult<track_container_t>>();
+      }
+    }();
     r.tracks = &trackContainer;
     r.trackStates = &trackContainer.trackStateContainer();
 
@@ -1255,6 +1326,15 @@ class CombinatorialKalmanFilter {
     r.activeBranches.push_back(rootBranch);
 
     auto propagationResult = m_propagator.propagate(propState);
+
+    // The steps are kept also if the propagation failed
+    if constexpr (!IsMultiStepper) {
+      if (tfOptions.recordedSteps != nullptr) {
+        tfOptions.recordedSteps->steps = std::move(
+            propState.actor.template get<detail::SteppingLogger::State>()
+                .steps);
+      }
+    }
 
     if (!propagationResult.ok()) {
       ACTS_DEBUG("Propagation failed: " << propagationResult.error() << " "

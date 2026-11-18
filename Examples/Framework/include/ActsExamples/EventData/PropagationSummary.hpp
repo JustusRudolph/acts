@@ -12,6 +12,7 @@
 #include "Acts/Propagator/PropagatorStatistics.hpp"
 #include "Acts/Propagator/detail/SteppingLogger.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace ActsExamples {
@@ -22,6 +23,10 @@ struct PropagationSummary {
 
   /// The start parameters
   Acts::BoundTrackParameters startParameters;
+
+  /// Index of the seed the propagation started from (e.g. in track finding),
+  /// unset if it did not start from a seed
+  std::optional<std::size_t> seedIndex;
 
   /// Totoal number of successful steps
   std::size_t nSteps = 0;

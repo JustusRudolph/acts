@@ -55,6 +55,7 @@ RootPropagationStepsWriter::RootPropagationStepsWriter(
   // Set the branches
   m_outputTree->Branch("event_nr", &m_eventNr);
   m_outputTree->Branch("track_nr", &m_trackNr);
+  m_outputTree->Branch("seed_index", &m_seedIndex);
   m_outputTree->Branch("d0", &m_d0);
   m_outputTree->Branch("z0", &m_z0);
   m_outputTree->Branch("phi", &m_phi);
@@ -145,6 +146,9 @@ ProcessCode RootPropagationStepsWriter::writeT(
 
     // Set the track number
     m_trackNr = static_cast<int>(trackNr);
+    m_seedIndex = summary.seedIndex.has_value()
+                      ? static_cast<int>(summary.seedIndex.value())
+                      : -1;
 
     // Set the initial trajectory parameters
     const auto& startParameters = summary.startParameters;
