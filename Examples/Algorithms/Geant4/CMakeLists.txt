@@ -11,6 +11,7 @@ acts_add_library(
     src/SensitiveSteppingAction.cpp
     src/SimParticleTranslation.cpp
     src/ParticleKillAction.cpp
+    src/TrajectorySteppingAction.cpp
     src/PhysicsListFactory.cpp
     src/Geant4Manager.cpp
     src/RunManager.cpp

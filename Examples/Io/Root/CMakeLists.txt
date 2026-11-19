@@ -11,6 +11,7 @@ acts_add_library(
     src/RootPropagationSummaryWriter.cpp
     src/RootSeedWriter.cpp
     src/RootSimHitWriter.cpp
+    src/RootSimParticleTrajectoryWriter.cpp
     src/RootSimHitReader.cpp
     src/RootSpacePointPerformanceWriter.cpp
     src/RootSpacePointWriter.cpp

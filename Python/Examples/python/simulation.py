@@ -655,6 +655,9 @@ def addGeant4(
     physicsList: str = "FTFP_BERT",
     detectorConstructionOptions=None,
     propagatorLargestAcceptableStep: float = float("inf"),
+    recordTrajectories: bool = False,
+    trajectoryMinStepLength: Optional[float] = None,
+    trajectoryMaxPoints: Optional[int] = None,
 ) -> None:
     """This function steers the detector simulation using Geant4
 
@@ -678,6 +681,11 @@ def addGeant4(
         if given, particle are killed after the global time since event creation exceeds the given value
     killSecondaries: bool
         if given, secondary particles are removed from simulation
+    recordTrajectories: bool
+        record the path of every particle into the "particle_trajectories"
+        collection (written with RootSimParticleTrajectoryWriter), thinned to
+        trajectoryMinStepLength between points and at most trajectoryMaxPoints
+        points per particle (defaults of Geant4Simulation.Config if None)
     """
 
     import acts.examples.geant4
@@ -724,6 +732,11 @@ def addGeant4(
         recordPropagationSummaries=recordPropagationSummaries,
         keepParticlesWithoutHits=keepParticlesWithoutHits,
         propagatorLargestAcceptableStep=propagatorLargestAcceptableStep,
+        recordTrajectories=recordTrajectories,
+        **acts.examples.defaultKWArgs(
+            trajectoryMinStepLength=trajectoryMinStepLength,
+            trajectoryMaxPoints=trajectoryMaxPoints,
+        ),
     )
     __geant4Handle = alg.geant4Handle
     s.addAlgorithm(alg)

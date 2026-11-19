@@ -27,8 +27,10 @@
 #include "ActsExamples/Geant4/SensitiveSurfaceMapper.hpp"
 #include "ActsExamples/Geant4/SimParticleTranslation.hpp"
 #include "ActsExamples/Geant4/SteppingActionList.hpp"
+#include "ActsExamples/Geant4/TrajectorySteppingAction.hpp"
 #include "ActsPlugins/FpeMonitoring/FpeMonitor.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -296,6 +298,17 @@ Geant4Simulation::Geant4Simulation(const Config& cfg,
 
     steppingCfg.actions.push_back(std::move(sensitiveSteppingAction));
 
+    // after the kill action, so it sees the particles stopped in this step
+    if (cfg.recordTrajectories) {
+      Geant4::TrajectorySteppingAction::Config trajectoryCfg;
+      trajectoryCfg.eventStore = m_eventStore;
+      trajectoryCfg.minStepLength = cfg.trajectoryMinStepLength;
+      trajectoryCfg.maxPoints = cfg.trajectoryMaxPoints;
+      steppingCfg.actions.push_back(
+          std::make_unique<Geant4::TrajectorySteppingAction>(
+              trajectoryCfg, this->logger().cloneWithSuffix("Trajectory")));
+    }
+
     // G4RunManager will take care of deletion
     auto steppingAction = new Geant4::SteppingActionList(steppingCfg);
     runManager().SetUserAction(steppingAction);
@@ -357,6 +370,9 @@ Geant4Simulation::Geant4Simulation(const Config& cfg,
   if (cfg.recordPropagationSummaries) {
     m_outputPropagationSummaries.initialize(cfg.outputPropagationSummaries);
   }
+  if (cfg.recordTrajectories) {
+    m_outputTrajectories.initialize(cfg.outputTrajectories);
+  }
 }
 
 Geant4Simulation::~Geant4Simulation() = default;
@@ -383,6 +399,19 @@ ProcessCode Geant4Simulation::execute(const AlgorithmContext& ctx) const {
       summaries.push_back(std::move(summary));
     }
     m_outputPropagationSummaries(ctx, std::move(summaries));
+  }
+
+  // Output the particle trajectories if requested, ordered by particle
+  if (m_cfg.recordTrajectories) {
+    SimParticleTrajectoryContainer trajectories;
+    trajectories.reserve(eventStore().trajectories.size());
+    for (auto& [particleId, trajectory] : eventStore().trajectories) {
+      trajectories.push_back(std::move(trajectory));
+    }
+    std::ranges::sort(trajectories, [](const auto& a, const auto& b) {
+      return a.particleId < b.particleId;
+    });
+    m_outputTrajectories(ctx, std::move(trajectories));
   }
 
   return ProcessCode::SUCCESS;

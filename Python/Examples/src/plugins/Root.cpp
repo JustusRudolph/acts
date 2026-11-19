@@ -28,6 +28,7 @@
 #include "ActsExamples/Io/Root/RootSeedWriter.hpp"
 #include "ActsExamples/Io/Root/RootSimHitReader.hpp"
 #include "ActsExamples/Io/Root/RootSimHitWriter.hpp"
+#include "ActsExamples/Io/Root/RootSimParticleTrajectoryWriter.hpp"
 #include "ActsExamples/Io/Root/RootSpacePointPerformanceWriter.hpp"
 #include "ActsExamples/Io/Root/RootSpacePointWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrackFinderNTupleWriter.hpp"
@@ -236,6 +237,10 @@ PYBIND11_MODULE(ActsExamplesPythonBindingsRoot, root) {
 
     ACTS_PYTHON_DECLARE_WRITER(RootSimHitWriter, root, "RootSimHitWriter",
                                inputSimHits, filePath, fileMode, treeName);
+
+    ACTS_PYTHON_DECLARE_WRITER(RootSimParticleTrajectoryWriter, root,
+                               "RootSimParticleTrajectoryWriter",
+                               inputTrajectories, filePath, fileMode, treeName);
 
     ACTS_PYTHON_DECLARE_WRITER(
         RootSpacePointWriter, root, "RootSpacePointWriter", inputSpacePoints,

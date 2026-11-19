@@ -13,6 +13,7 @@
 #include "Acts/Utilities/Logger.hpp"
 #include "ActsExamples/DetectorCommons/Detector.hpp"
 #include "ActsExamples/EventData/PropagationSummary.hpp"
+#include "ActsExamples/EventData/SimParticleTrajectory.hpp"
 #include "ActsExamples/EventData/SimHit.hpp"
 #include "ActsExamples/EventData/SimParticle.hpp"
 #include "ActsExamples/Framework/DataHandle.hpp"
@@ -138,6 +139,9 @@ class Geant4Simulation final : public Geant4SimulationBase {
     /// Name of the output collection : propagation records (debugging)
     std::string outputPropagationSummaries = "propagation_summaries";
 
+    /// Name of the output collection : particle trajectories
+    std::string outputTrajectories = "particle_trajectories";
+
     /// The ACTS sensitive surfaces in a mapper, used for hit creation
     std::shared_ptr<const Geant4::SensitiveSurfaceMapper>
         sensitiveSurfaceMapper = nullptr;
@@ -163,6 +167,14 @@ class Geant4Simulation final : public Geant4SimulationBase {
     bool keepParticlesWithoutHits = true;
 
     bool recordPropagationSummaries = false;
+
+    /// Record the path of every particle (TrajectorySteppingAction), in all
+    /// volumes, next to the hits
+    bool recordTrajectories = false;
+    /// Minimum distance between two recorded trajectory points
+    double trajectoryMinStepLength = 1 * Acts::UnitConstants::mm;
+    /// Maximum number of recorded points per particle
+    std::size_t trajectoryMaxPoints = 100000;
   };
 
   /// Simulation constructor
@@ -195,6 +207,9 @@ class Geant4Simulation final : public Geant4SimulationBase {
 
   WriteDataHandle<PropagationSummaries> m_outputPropagationSummaries{
       this, "OutputPropagationSummaries"};
+
+  WriteDataHandle<SimParticleTrajectoryContainer> m_outputTrajectories{
+      this, "OutputTrajectories"};
 };
 
 class Geant4MaterialRecording final : public Geant4SimulationBase {
