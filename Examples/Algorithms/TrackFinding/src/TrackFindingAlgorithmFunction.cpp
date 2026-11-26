@@ -6,6 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#include "Acts/Propagator/ChordNavigator.hpp"
 #include "Acts/Propagator/MultiStepperLoop.hpp"
 #include "Acts/Propagator/Navigator.hpp"
 #include "Acts/Propagator/Propagator.hpp"
@@ -26,6 +27,10 @@ using Stepper = Acts::SympyStepper;
 using Navigator = Acts::Navigator;
 using Propagator = Acts::Propagator<Stepper, Navigator>;
 using CKF = Acts::CombinatorialKalmanFilter<Propagator, TrackContainer>;
+
+using ChordNavigator = Acts::Experimental::ChordNavigator;
+using ChordPropagator = Acts::Propagator<Stepper, ChordNavigator>;
+using ChordCKF = Acts::CombinatorialKalmanFilter<ChordPropagator, TrackContainer>;
 
 using BremStepper = Acts::MultiStepperLoop<Stepper>;
 using BremPropagator = Acts::Propagator<BremStepper, Navigator>;
@@ -66,6 +71,26 @@ TrackFindingAlgorithm::makeTrackFinderFunction(
 
   // build the track finder functions. owns the track finder object.
   return std::make_shared<TrackFinderFunctionImpl<CKF>>(std::move(trackFinder));
+}
+
+std::shared_ptr<TrackFindingAlgorithm::TrackFinderFunction>
+TrackFindingAlgorithm::makeChordTrackFinderFunction(
+    std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry,
+    std::shared_ptr<const Acts::MagneticFieldProvider> magneticField,
+    const Acts::Logger& logger) {
+  Stepper stepper(std::move(magneticField));
+  // finds the surface crossings on the chord of each step instead of
+  // predicting them on a straight line, for strongly curved tracks; Gen3 only
+  ChordNavigator::Config cfg;
+  cfg.trackingGeometry = std::move(trackingGeometry);
+  ChordNavigator navigator(cfg, logger.cloneWithSuffix("ChordNavigator"));
+  ChordPropagator propagator(std::move(stepper), std::move(navigator),
+                             logger.cloneWithSuffix("ChordPropagator"));
+  ChordCKF trackFinder(std::move(propagator),
+                       logger.cloneWithSuffix("ChordFinder"));
+
+  return std::make_shared<TrackFinderFunctionImpl<ChordCKF>>(
+      std::move(trackFinder));
 }
 
 std::shared_ptr<TrackFindingAlgorithm::TrackFinderFunction>

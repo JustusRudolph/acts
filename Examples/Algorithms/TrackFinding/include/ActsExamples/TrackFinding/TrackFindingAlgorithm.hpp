@@ -74,6 +74,13 @@ class TrackFindingAlgorithm final : public IAlgorithm {
       std::shared_ptr<const Acts::MagneticFieldProvider> magneticField,
       const Acts::Logger& logger);
 
+  /// Create the track finder function implementation with the experimental
+  /// ChordNavigator (Gen3 tracking geometry only).
+  static std::shared_ptr<TrackFinderFunction> makeChordTrackFinderFunction(
+      std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry,
+      std::shared_ptr<const Acts::MagneticFieldProvider> magneticField,
+      const Acts::Logger& logger);
+
   /// Create the bremstrahlung track finder function implementation.
   static std::shared_ptr<TrackFinderFunction> makeBremTrackFinderFunction(
       std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry,
