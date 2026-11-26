@@ -90,8 +90,11 @@ SeedFilterConfigArg = namedtuple(
         "useDeltaRorTopRadius",
         "deltaRMin",
         "deltaInvHelixDiameter",
+        "deltaCotThetaWeightFactor",  # OrthogonalTripletSeedingAlgorithm only
+        "minClusterSizeOneSp",  # OrthogonalTripletSeedingAlgorithm only
+        "numSpsWithLargeCluster",  # OrthogonalTripletSeedingAlgorithm only
     ],
-    defaults=[None] * 12,
+    defaults=[None] * 15,
 )
 
 SpacePointGridConfigArg = namedtuple(
@@ -1171,6 +1174,7 @@ def addOrthogonalTripletSeeding(
     spacePointGridConfigArg: SpacePointGridConfigArg,
     logLevel: acts.logging.Level = None,
     outputSeeds: str = "seeds",
+    inputClusters: str = "",
 ):
     """adds orthogonal triplet seeding
     For parameters description see addSeeding
@@ -1259,6 +1263,10 @@ def addOrthogonalTripletSeeding(
             maxSeedsPerSpMConf=seedFilterConfigArg.maxSeedsPerSpMConf,
             maxQualitySeedsPerSpMConf=seedFilterConfigArg.maxQualitySeedsPerSpMConf,
             useDeltaRinsteadOfTopRadius=seedFilterConfigArg.useDeltaRorTopRadius,
+            deltaCotThetaWeightFactor=seedFilterConfigArg.deltaCotThetaWeightFactor,
+            minClusterSizeOneSp=seedFilterConfigArg.minClusterSizeOneSp,
+            numSpsWithLargeCluster=seedFilterConfigArg.numSpsWithLargeCluster,
+            inputClusters=inputClusters if inputClusters else None,
             useExtraCuts=seedingAlgorithmConfigArg.useExtraCuts,
         ),
     )

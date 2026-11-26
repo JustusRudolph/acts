@@ -67,7 +67,10 @@ void addSeeding(py::module& mex) {
       sigmaScattering, radLengthPerSeed, deltaCotThetaMax, toleranceParam,
       deltaInvHelixDiameter,
       compatSeedWeight, impactWeightFactor, zOriginWeightFactor, maxSeedsPerSpM,
-      compatSeedLimit, seedWeightIncrement, numSeedIncrement, seedConfirmation,
+      compatSeedLimit, seedWeightIncrement, numSeedIncrement,
+      deltaCotThetaWeightFactor, inputClusters, minClusterSizeOneSp,
+      numSpsWithLargeCluster,
+      seedConfirmation,
       centralSeedConfirmationRange, forwardSeedConfirmationRange,
       maxSeedsPerSpMConf, maxQualitySeedsPerSpMConf,
       useDeltaRinsteadOfTopRadius, useExtraCuts);

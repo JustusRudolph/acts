@@ -12,6 +12,7 @@
 #include "Acts/Seeding/SeedConfirmationRangeConfig.hpp"
 #include "Acts/Seeding/TripletSeeder.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include "ActsExamples/EventData/Cluster.hpp"
 #include "ActsExamples/EventData/Seed.hpp"
 #include "ActsExamples/EventData/SpacePoint.hpp"
 #include "ActsExamples/Framework/DataHandle.hpp"
@@ -185,6 +186,25 @@ class OrthogonalTripletSeedingAlgorithm final : public IAlgorithm {
     float seedWeightIncrement = 0;
     float numSeedIncrement = std::numeric_limits<float>::infinity();
 
+    /// Seed weight malus per unit of |cotTheta_bottom - cotTheta_top|, with
+    /// cotTheta of each doublet from its chord (dz / transverse distance).
+    /// Ranks the triplets of a middle space point by how well the two doublets
+    /// agree in theta, so that maxSeedsPerSpM keeps the straightest ones
+    /// instead of arbitrary ones when all other weights are equal (e.g. with
+    /// impactWeightFactor = zOriginWeightFactor = 0). 0 disables it.
+    float deltaCotThetaWeightFactor = 0;
+
+    /// Input clusters (one per measurement, same index), only needed for
+    /// minClusterSizeOneSp
+    std::string inputClusters;
+    /// Keep a triplet only if at least one of its space points comes from a
+    /// cluster with at least this many pixels. Single-pixel noise hits then
+    /// cannot form a seed among themselves. 0 disables it.
+    std::uint32_t minClusterSizeOneSp = 0;
+    /// Number of the three space points that need such a cluster (1-3), only
+    /// used with minClusterSizeOneSp
+    std::uint32_t numSpsWithLargeCluster = 1;
+
     /// Enable quality seed confirmation, this is different than default seeding
     /// confirmation because it can also be defined for different (r, z) regions
     /// of the detector (e.g. forward or central region) by
@@ -244,6 +264,7 @@ class OrthogonalTripletSeedingAlgorithm final : public IAlgorithm {
 
   Acts::Delegate<bool(const ConstSpacePointProxy&)> m_spacePointSelector;
 
+  ReadDataHandle<ClusterContainer> m_inputClusters{this, "InputClusters"};
   ReadDataHandle<SpacePointContainer> m_inputSpacePoints{this,
                                                          "InputSpacePoints"};
   WriteDataHandle<SeedContainer> m_outputSeeds{this, "OutputSeeds"};

@@ -19,12 +19,17 @@
 #include "Acts/Seeding/TripletSeedFinder.hpp"
 #include "Acts/Utilities/AxisDefinitions.hpp"
 #include "Acts/Utilities/Delegate.hpp"
+#include "ActsExamples/EventData/IndexSourceLink.hpp"
 #include "ActsExamples/EventData/SpacePoint.hpp"
 
 #include <cmath>
 #include <csignal>
 #include <cstddef>
+#include <memory>
 #include <numbers>
+#include <span>
+#include <stdexcept>
+#include <vector>
 
 namespace ActsExamples {
 
@@ -61,6 +66,65 @@ static inline bool itkFastTrackingSPselect(const ConstSpacePointProxy &sp) {
   return true;
 }
 
+/// Seed weight and cuts added to the BroadTripletSeedFilter:
+/// - weight malus proportional to the difference of the cotTheta of the two
+///   doublets (deltaCotThetaWeightFactor)
+/// - reject triplets whose space points all come from small clusters, given a
+///   per-event flag per input space point (minClusterSizeOneSp): at least
+///   numSpsWithLargeCluster of the three need a large cluster
+class TripletSeedCuts final : public Acts::ITripletSeedCuts {
+ public:
+  TripletSeedCuts(float deltaCotThetaWeightFactor,
+                  const std::vector<std::uint8_t> *hasLargeCluster,
+                  std::uint32_t numSpsWithLargeCluster)
+      : m_weightFactor(deltaCotThetaWeightFactor),
+        m_hasLargeCluster(hasLargeCluster),
+        m_numSpsWithLargeCluster(numSpsWithLargeCluster) {}
+
+  float seedWeight(const Acts::ConstSpacePointProxy &bottom,
+                   const Acts::ConstSpacePointProxy &middle,
+                   const Acts::ConstSpacePointProxy &top) const override {
+    if (m_weightFactor == 0) {
+      return 0;
+    }
+    const float cotThetaBottom = chordCotTheta(bottom, middle);
+    const float cotThetaTop = chordCotTheta(middle, top);
+    return -m_weightFactor * std::abs(cotThetaTop - cotThetaBottom);
+  }
+
+  bool singleSeedCut(float /*weight*/, const Acts::ConstSpacePointProxy &bottom,
+                     const Acts::ConstSpacePointProxy &middle,
+                     const Acts::ConstSpacePointProxy &top) const override {
+    if (m_hasLargeCluster == nullptr) {
+      return true;
+    }
+    // copiedFromIndex points to the input space point, also for the
+    // phi-shifted copies
+    const auto &flags = *m_hasLargeCluster;
+    const std::uint32_t nLarge = flags[bottom.copiedFromIndex()] +
+                                 flags[middle.copiedFromIndex()] +
+                                 flags[top.copiedFromIndex()];
+    return nLarge >= m_numSpsWithLargeCluster;
+  }
+
+  void cutPerMiddleSp(
+      std::span<Acts::TripletCandidate> & /*seedCandidates*/) const override {}
+
+ private:
+  /// dz over the transverse distance between the two space points
+  static float chordCotTheta(const Acts::ConstSpacePointProxy &inner,
+                             const Acts::ConstSpacePointProxy &outer) {
+    const float deltaX = outer.xy()[0] - inner.xy()[0];
+    const float deltaY = outer.xy()[1] - inner.xy()[1];
+    const float deltaZ = outer.zr()[0] - inner.zr()[0];
+    return deltaZ / std::hypot(deltaX, deltaY);
+  }
+
+  float m_weightFactor;
+  const std::vector<std::uint8_t> *m_hasLargeCluster;
+  std::uint32_t m_numSpsWithLargeCluster;
+};
+
 }  // namespace
 
 OrthogonalTripletSeedingAlgorithm::OrthogonalTripletSeedingAlgorithm(
@@ -93,6 +157,16 @@ OrthogonalTripletSeedingAlgorithm::OrthogonalTripletSeedingAlgorithm(
   m_filterConfig.maxQualitySeedsPerSpMConf = m_cfg.maxQualitySeedsPerSpMConf;
   m_filterConfig.useDeltaRinsteadOfTopRadius =
       m_cfg.useDeltaRinsteadOfTopRadius;
+  if (m_cfg.numSpsWithLargeCluster < 1 || m_cfg.numSpsWithLargeCluster > 3) {
+    throw std::invalid_argument("numSpsWithLargeCluster must be 1, 2 or 3");
+  }
+  if (m_cfg.minClusterSizeOneSp > 0 && m_cfg.inputClusters.empty()) {
+    throw std::invalid_argument(
+        "minClusterSizeOneSp needs inputClusters to be set");
+  }
+  if (!m_cfg.inputClusters.empty()) {
+    m_inputClusters.initialize(m_cfg.inputClusters);
+  }
 
   m_filterLogger = this->logger().cloneWithSuffix("Filter");
 
@@ -261,7 +335,30 @@ ProcessCode OrthogonalTripletSeedingAlgorithm::execute(
   // run the seeding
   Acts::BroadTripletSeedFilter::State filterState;
   Acts::BroadTripletSeedFilter::Cache filterCache;
-  Acts::BroadTripletSeedFilter seedFilter(m_filterConfig, filterState,
+  // per-event filter config: the cluster-size cut needs this event's clusters
+  Acts::BroadTripletSeedFilter::Config filterConfig = m_filterConfig;
+  std::vector<std::uint8_t> hasLargeCluster;
+  if (m_cfg.minClusterSizeOneSp > 0) {
+    const ClusterContainer &clusters = m_inputClusters(ctx);
+    hasLargeCluster.assign(spacePoints.size(), 0);
+    for (std::size_t i = 0; i < spacePoints.size(); ++i) {
+      for (const Acts::SourceLink &sl : spacePoints[i].sourceLinks()) {
+        const Index measurement = sl.get<IndexSourceLink>().index();
+        if (clusters.at(measurement).channels.size() >=
+            m_cfg.minClusterSizeOneSp) {
+          hasLargeCluster[i] = 1;
+          break;
+        }
+      }
+    }
+  }
+  if (m_cfg.deltaCotThetaWeightFactor != 0 || m_cfg.minClusterSizeOneSp > 0) {
+    filterConfig.experimentCuts = std::make_shared<TripletSeedCuts>(
+        m_cfg.deltaCotThetaWeightFactor,
+        m_cfg.minClusterSizeOneSp > 0 ? &hasLargeCluster : nullptr,
+        m_cfg.numSpsWithLargeCluster);
+  }
+  Acts::BroadTripletSeedFilter seedFilter(filterConfig, filterState,
                                           filterCache, *m_filterLogger);
 
   static thread_local Acts::TripletSeeder::Cache cache;
