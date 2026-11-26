@@ -77,12 +77,16 @@ std::shared_ptr<TrackFindingAlgorithm::TrackFinderFunction>
 TrackFindingAlgorithm::makeChordTrackFinderFunction(
     std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry,
     std::shared_ptr<const Acts::MagneticFieldProvider> magneticField,
-    const Acts::Logger& logger) {
+    const Acts::Logger& logger, double sensitiveSurfaceTolerance) {
   Stepper stepper(std::move(magneticField));
   // finds the surface crossings on the chord of each step instead of
   // predicting them on a straight line, for strongly curved tracks; Gen3 only
   ChordNavigator::Config cfg;
   cfg.trackingGeometry = std::move(trackingGeometry);
+  if (sensitiveSurfaceTolerance != 0.) {
+    cfg.sensitiveSurfaceTolerance =
+        Acts::BoundaryTolerance::AbsoluteEuclidean(sensitiveSurfaceTolerance);
+  }
   ChordNavigator navigator(cfg, logger.cloneWithSuffix("ChordNavigator"));
   ChordPropagator propagator(std::move(stepper), std::move(navigator),
                              logger.cloneWithSuffix("ChordPropagator"));

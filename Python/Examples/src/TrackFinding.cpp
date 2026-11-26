@@ -82,11 +82,14 @@ void addTrackFinding(py::module& mex) {
         "makeChordTrackFinderFunction",
         [](std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry,
            std::shared_ptr<const Acts::MagneticFieldProvider> magneticField,
-           Acts::Logging::Level level) {
+           Acts::Logging::Level level, double sensitiveSurfaceTolerance) {
           return Alg::makeChordTrackFinderFunction(
               std::move(trackingGeometry), std::move(magneticField),
-              *Acts::getDefaultLogger("TrackFindingChord", level));
-        });
+              *Acts::getDefaultLogger("TrackFindingChord", level),
+              sensitiveSurfaceTolerance);
+        },
+        py::arg("trackingGeometry"), py::arg("magneticField"),
+        py::arg("level"), py::arg("sensitiveSurfaceTolerance") = 0.);
 
     alg.def_static(
         "makeBremTrackFinderFunction",

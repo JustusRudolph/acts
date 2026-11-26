@@ -76,10 +76,13 @@ class TrackFindingAlgorithm final : public IAlgorithm {
 
   /// Create the track finder function implementation with the experimental
   /// ChordNavigator (Gen3 tracking geometry only).
+  /// @param sensitiveSurfaceTolerance bounds tolerance (mm) of the sensitive
+  ///        surfaces in the navigation, 0 for the exact bounds; see
+  ///        Acts::Experimental::ChordNavigator::Config
   static std::shared_ptr<TrackFinderFunction> makeChordTrackFinderFunction(
       std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry,
       std::shared_ptr<const Acts::MagneticFieldProvider> magneticField,
-      const Acts::Logger& logger);
+      const Acts::Logger& logger, double sensitiveSurfaceTolerance = 0.);
 
   /// Create the bremstrahlung track finder function implementation.
   static std::shared_ptr<TrackFinderFunction> makeBremTrackFinderFunction(

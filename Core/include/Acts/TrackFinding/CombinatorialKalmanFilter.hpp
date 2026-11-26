@@ -24,6 +24,7 @@
 #include "Acts/Propagator/detail/LoopProtection.hpp"
 #include "Acts/Propagator/detail/PointwiseMaterialInteraction.hpp"
 #include "Acts/Propagator/detail/SteppingLogger.hpp"
+#include "Acts/Surfaces/BoundaryTolerance.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilterError.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilterExtensions.hpp"
 #include "Acts/TrackFitting/BetheHeitlerApprox.hpp"
@@ -132,6 +133,17 @@ struct CombinatorialKalmanFilterOptions {
   /// @note Keep enabled if the surfaces themselves are needed, e.g. for a refit
   ///       with the `DirectNavigator`.
   bool recordMaterialStates = true;
+
+  /// Bounds check of the predicted position on a sensitive surface where no
+  /// measurement was selected: only inside the surface bounds with this
+  /// tolerance the state counts as a hole. Outside, it is flagged
+  /// `HasNoExpectedHit` and not counted, e.g. for surfaces the navigator
+  /// reaches through a bounds tolerance (see the `ChordNavigator` config
+  /// `sensitiveSurfaceTolerance`). A negative tolerance shrinks the bounds, so
+  /// that only a prediction well inside the surface makes a hole.
+  /// @note The measurement search is not affected, only the hole counting.
+  ///       The default (infinite) counts every such state as a hole.
+  BoundaryTolerance holeBoundaryTolerance = BoundaryTolerance::Infinite();
 
   /// If set, the steps of the propagation are recorded into this object. It
   /// is overwritten by every call to `findTracks`, and also filled if the
@@ -286,6 +298,9 @@ class CombinatorialKalmanFilter {
 
     /// @see CombinatorialKalmanFilterOptions::recordMaterialStates
     bool recordMaterialStates = true;
+
+    /// @see CombinatorialKalmanFilterOptions::holeBoundaryTolerance
+    BoundaryTolerance holeBoundaryTolerance = BoundaryTolerance::Infinite();
 
     /// Calibration context for the finding run
     const CalibrationContext* calibrationContextPtr{nullptr};
@@ -738,6 +753,21 @@ class CombinatorialKalmanFilter {
             ACTS_DEBUG("Track state creation failed on surface "
                        << surface.geometryId() << ": " << tsRes.error());
             return tsRes.error();
+          }
+        }
+
+        // A prediction outside the bounds (with tolerance) reached the surface
+        // only through a navigation bounds tolerance: no hole
+        if (expectMeasurements && !holeBoundaryTolerance.isInfinite()) {
+          const auto& boundParams = boundState.parameters;
+          const Vector2 localPosition =
+              boundParams.parameters().template head<2>();
+          if (!surface.insideBounds(localPosition, holeBoundaryTolerance)) {
+            ACTS_VERBOSE("No measurement selected on surface "
+                         << surface.geometryId() << " at local "
+                         << localPosition.transpose()
+                         << ", outside its hole bounds: no hole");
+            expectMeasurements = false;
           }
         }
 
@@ -1245,6 +1275,7 @@ class CombinatorialKalmanFilter {
     combKalmanActor.skipPrePropagationUpdate =
         tfOptions.skipPrePropagationUpdate;
     combKalmanActor.recordMaterialStates = tfOptions.recordMaterialStates;
+    combKalmanActor.holeBoundaryTolerance = tfOptions.holeBoundaryTolerance;
     combKalmanActor.actorLogger = m_actorLogger.get();
     combKalmanActor.updaterLogger = m_updaterLogger.get();
     combKalmanActor.calibrationContextPtr = &tfOptions.calibrationContext.get();

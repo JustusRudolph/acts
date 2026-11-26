@@ -162,6 +162,15 @@ class ChordNavigator final {
     /// plane anywhere in the volume.
     BoundaryTolerance extendedSurfaceTolerance = BoundaryTolerance::None();
 
+    /// Bounds tolerance of the sensitive surfaces offered without one (by the
+    /// navigation policies or as extended surfaces), so that a trajectory
+    /// passing just outside a module still reaches it, e.g. for the CKF to
+    /// search its measurements. A surface reached this way is also reached
+    /// when the trajectory crosses next to it, see the
+    /// `CombinatorialKalmanFilterOptions::holeBoundaryTolerance` to keep such
+    /// crossings from counting as holes.
+    BoundaryTolerance sensitiveSurfaceTolerance = BoundaryTolerance::None();
+
     /// Number of candidates to reserve memory for
     std::size_t candidatePreReserve = 50;
   };

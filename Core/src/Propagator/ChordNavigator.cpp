@@ -624,6 +624,13 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
     previous = &surface;
     ++state.chordStatistics.nCandidates;
 
+    // sensitive surfaces offered without a tolerance get the configured one
+    const BoundaryTolerance candidateTolerance =
+        !candidate.isPortalTarget() && surface.isSensitive() &&
+                candidate.boundaryTolerance().isNone()
+            ? m_cfg.sensitiveSurfaceTolerance
+            : candidate.boundaryTolerance();
+
     const auto intersections =
         surface.intersect(gctx, start, direction, BoundaryTolerance::Infinite(),
                           surfaceTolerance);
@@ -657,7 +664,7 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
         continue;
       }
       const BoundaryTolerance chordTolerance =
-          widen(candidate.boundaryTolerance(), slide);
+          widen(candidateTolerance, slide);
       if (!chordTolerance.isInfinite()) {
         const auto local =
             surface.globalToLocal(gctx, intersection.position(), direction,
@@ -677,7 +684,7 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
             intersection, static_cast<IntersectionIndex>(index), surface,
             BoundaryTolerance::Infinite());
       }
-      crossing.boundaryTolerance = candidate.boundaryTolerance();
+      crossing.boundaryTolerance = candidateTolerance;
       crossing.chordPosition = intersection.position();
       crossing.chordPathLength = pathLength;
       crossing.slide = slide;
