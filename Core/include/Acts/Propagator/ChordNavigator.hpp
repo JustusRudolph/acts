@@ -215,6 +215,10 @@ class ChordNavigator final {
     double chordPathLength = 0.;
     /// Bounds tolerance added on the chord for the sagitta
     double slide = 0.;
+    /// Whether the crossing lies within the bounds without the
+    /// sensitiveSurfaceTolerance (always true for the other surfaces); orders
+    /// crossings at the same path length, see findCrossings
+    bool insideNominalBounds = true;
   };
 
   /// A surface reached since the last chord search

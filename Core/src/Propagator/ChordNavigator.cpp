@@ -665,6 +665,7 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
       }
       const BoundaryTolerance chordTolerance =
           widen(candidateTolerance, slide);
+      bool insideNominalBounds = true;
       if (!chordTolerance.isInfinite()) {
         const auto local =
             surface.globalToLocal(gctx, intersection.position(), direction,
@@ -672,6 +673,11 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
         if (!local.ok() || !surface.insideBounds(*local, chordTolerance)) {
           continue;
         }
+        // reached only through the sensitiveSurfaceTolerance?
+        const BoundaryTolerance nominalTolerance =
+            widen(candidate.boundaryTolerance(), slide);
+        insideNominalBounds = nominalTolerance.isInfinite() ||
+                              surface.insideBounds(*local, nominalTolerance);
       }
 
       Crossing crossing;
@@ -688,6 +694,7 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
       crossing.chordPosition = intersection.position();
       crossing.chordPathLength = pathLength;
       crossing.slide = slide;
+      crossing.insideNominalBounds = insideNominalBounds;
       state.crossings.push_back(crossing);
     }
   }
@@ -696,6 +703,26 @@ void ChordNavigator::findCrossings(State& state, const Vector3& start,
   // Crossings at exactly the same path length are left in arbitrary order:
   // such ties need coincident surfaces, which a valid geometry does not have
   std::ranges::sort(state.crossings, std::less{}, &Crossing::chordPathLength);
+  // ... except with a sensitiveSurfaceTolerance: the crossing of two coplanar
+  // neighbouring modules (e.g. on a stave) is then on both. Only the first
+  // crossing of such a tie is reached, the propagator skips the others as
+  // already on surface. The module crossed within its nominal bounds goes
+  // first, so that the tolerance does not take its measurements away.
+  for (auto groupBegin = state.crossings.begin();
+       groupBegin != state.crossings.end();) {
+    auto groupEnd = std::next(groupBegin);
+    while (groupEnd != state.crossings.end() &&
+           groupEnd->chordPathLength - groupBegin->chordPathLength <=
+               state.options.surfaceTolerance + s_onSurfaceTolerance) {
+      ++groupEnd;
+    }
+    if (std::distance(groupBegin, groupEnd) > 1) {
+      std::stable_partition(groupBegin, groupEnd, [](const Crossing& crossing) {
+        return crossing.insideNominalBounds;
+      });
+    }
+    groupBegin = groupEnd;
+  }
   state.chordStatistics.nCrossings += state.crossings.size();
 
   ACTS_VERBOSE(volInfo(state)
